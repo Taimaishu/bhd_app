@@ -293,7 +293,9 @@ def validate_finding_fields(title: str, description: str, evidence: str, busines
         errors.append("Evidence is too short. Record what you observed (ports, settings, URLs, screenshots note).")
     if looks_like_wizard_output(evidence):
         errors.append("Evidence looks like wizard output. Evidence should be observations/results, not 'I ran init'.")
-    if f"{CLI_NAME} init" in evidence.lower() or "python3 bhd.py init" in evidence.lower():
+    # Catch variations: bhd-cli init, ./bhd-cli init, python3 bhd.py init, with any whitespace
+    init_pattern = rf"(?:\./)?\s*{re.escape(CLI_NAME)}\s+init|python3\s+bhd\.py\s+init"
+    if re.search(init_pattern, evidence.lower(), re.IGNORECASE):
         errors.append("Evidence is 'init'. Replace with actual evidence (e.g., router setting screenshot note, scan results summary).")
 
     if not business_impact.strip() or len(business_impact.strip()) < 20:
@@ -1283,7 +1285,7 @@ def cmd_report(_args):
 # CLI Parser
 # --------------------------
 def build_parser():
-    parser = argparse.ArgumentParser(prog="bhd", description="Black Hat Defense CLI (Guardrails + Home Audit)")
+    parser = argparse.ArgumentParser(prog=CLI_NAME, description="Black Hat Defense CLI (Guardrails + Home Audit)")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Engagements group

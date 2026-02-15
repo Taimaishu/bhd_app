@@ -625,13 +625,34 @@ def cmd_finding_edit(args):
 
     affected = safe_input(f"Affected [{found['affected_target']}]: ").strip()
     if affected:
+        # Fix IP comma issue
+        affected = affected.replace(",", ".").strip()
         found['affected_target'] = affected
 
     description = safe_input(f"Description [{found['description'][:50]}...]: ").strip()
     if description:
         found['description'] = description
 
-    evidence = safe_input(f"Evidence [{found['evidence'][:50]}...]: ").strip()
+    # Allow editing impact/likelihood
+    if yes_no("Update risk scoring (impact/likelihood)?"):
+        print_impact_coaching()
+        impact = choose_from("\nChoose Impact:", ["Critical", "High", "Medium", "Low", "Informational"])
+        print_likelihood_coaching()
+        likelihood = choose_from("\nChoose Likelihood:", ["High", "Medium", "Low"])
+
+        # Recalculate severity and priority
+        sev = severity_from(impact, likelihood)
+        prio = remediation_priority(sev)
+
+        found['impact_level'] = impact
+        found['likelihood'] = likelihood
+        found['severity'] = sev
+        found['remediation_priority'] = prio
+
+        print(f"\nRecalculated Severity: {sev}")
+        print(f"Remediation Priority: {prio}")
+
+    evidence = safe_input(f"\nEvidence [{found['evidence'][:50]}...]: ").strip()
     if evidence:
         found['evidence'] = evidence
 
@@ -642,6 +663,23 @@ def cmd_finding_edit(args):
     recommendation = safe_input(f"Recommendation [{found['recommendation'][:50]}...]: ").strip()
     if recommendation:
         found['recommendation'] = recommendation
+
+    # Validate edited finding
+    errors = validate_finding_fields(
+        found['title'],
+        found['description'],
+        found['evidence'],
+        found['business_impact'],
+        found['recommendation']
+    )
+
+    if errors:
+        print("\nValidation errors found:")
+        for e in errors:
+            print(f"- {e}")
+        if not yes_no("\nSave anyway?"):
+            print("Edit canceled.")
+            return
 
     findings[found_idx] = found
     data["work"]["findings"] = findings
@@ -716,6 +754,7 @@ def cmd_finding_search(args):
             f.get("description", ""),
             f.get("evidence", ""),
             f.get("recommendation", ""),
+            f.get("business_impact", ""),
             f.get("affected_target", ""),
         ]).lower()
 
@@ -732,6 +771,76 @@ def cmd_finding_search(args):
         print(f"  Target: {f.get('affected_target')}")
         desc_snippet = f.get('description', '')[:100]
         print(f"  Description: {desc_snippet}...")
+
+
+def cmd_finding_show(args):
+    p = pick_current_engagement()
+    data = load_engagement(p)
+    findings = data.get("work", {}).get("findings", [])
+
+    finding_id = args.id
+    found = None
+    for f in findings:
+        if f.get("id") == finding_id:
+            found = f
+            break
+
+    if not found:
+        print(f"Finding {finding_id} not found.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"=== {found['id']} — {found['title']} ===\n")
+    print(f"Severity: {found.get('severity', 'N/A')}")
+    print(f"Impact Level: {found.get('impact_level', 'N/A')}")
+    print(f"Likelihood: {found.get('likelihood', 'N/A')}")
+    print(f"Remediation Priority: {found.get('remediation_priority', 'N/A')}")
+    print(f"Affected Target: {found.get('affected_target', 'N/A')}")
+    print(f"Status: {found.get('status', 'open')}")
+    if found.get("auto_generated"):
+        print(f"Auto-Generated: Yes")
+    print(f"Created: {found.get('ts_utc', 'N/A')}\n")
+
+    print("Description:")
+    print(f"  {found.get('description', 'N/A')}\n")
+
+    print("Evidence:")
+    print(f"  {found.get('evidence', 'N/A')}\n")
+
+    print("Business Impact:")
+    print(f"  {found.get('business_impact', 'N/A')}\n")
+
+    print("Recommendation:")
+    print(f"  {found.get('recommendation', 'N/A')}")
+
+
+def cmd_finding_status(args):
+    p = pick_current_engagement()
+    data = load_engagement(p)
+    findings = data.get("work", {}).get("findings", [])
+
+    finding_id = args.id
+    new_status = args.status
+
+    found = None
+    found_idx = None
+    for i, f in enumerate(findings):
+        if f.get("id") == finding_id:
+            found = f
+            found_idx = i
+            break
+
+    if not found:
+        print(f"Finding {finding_id} not found.", file=sys.stderr)
+        sys.exit(1)
+
+    old_status = found.get("status", "open")
+    found["status"] = new_status
+
+    findings[found_idx] = found
+    data["work"]["findings"] = findings
+    save_engagement(p, data)
+
+    print(f"Updated {finding_id} status: {old_status} → {new_status}")
 
 
 # --------------------------
@@ -1159,6 +1268,10 @@ def build_parser():
     find_sub.add_parser("add", help="Add a finding (guided + validated)").set_defaults(func=cmd_finding_add)
     find_sub.add_parser("list", help="List findings").set_defaults(func=cmd_finding_list)
 
+    p_fshow = find_sub.add_parser("show", help="Show detailed finding information")
+    p_fshow.add_argument("id", help="Finding ID (e.g., F-001)")
+    p_fshow.set_defaults(func=cmd_finding_show)
+
     p_fedit = find_sub.add_parser("edit", help="Edit a finding")
     p_fedit.add_argument("id", help="Finding ID (e.g., F-001)")
     p_fedit.set_defaults(func=cmd_finding_edit)
@@ -1167,10 +1280,15 @@ def build_parser():
     p_fdel.add_argument("id", help="Finding ID (e.g., F-001)")
     p_fdel.set_defaults(func=cmd_finding_delete)
 
+    p_fstatus = find_sub.add_parser("status", help="Update finding status")
+    p_fstatus.add_argument("id", help="Finding ID (e.g., F-001)")
+    p_fstatus.add_argument("status", choices=["open", "remediated", "accepted", "retest"], help="New status")
+    p_fstatus.set_defaults(func=cmd_finding_status)
+
     p_ffilter = find_sub.add_parser("filter", help="Filter findings")
     p_ffilter.add_argument("--severity", choices=["Critical", "High", "Medium", "Low", "Informational"])
     p_ffilter.add_argument("--target", help="Filter by affected target (substring match)")
-    p_ffilter.add_argument("--status", choices=["open", "remediated", "accepted"])
+    p_ffilter.add_argument("--status", choices=["open", "remediated", "accepted", "retest"])
     p_ffilter.set_defaults(func=cmd_finding_filter)
 
     p_fsearch = find_sub.add_parser("search", help="Search findings by keyword")

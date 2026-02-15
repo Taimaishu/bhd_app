@@ -80,6 +80,41 @@ def choose_from(prompt: str, options: list[str]) -> str:
         print("Pick a valid number.\n")
 
 
+def choose_yes_no_unknown(prompt: str) -> str:
+    """
+    Choose from No/Yes/Unknown with support for:
+    - Numeric input: 1/2/3
+    - Shortcut input: n/y/u (case-insensitive)
+    Returns: "No", "Yes", or "Unknown"
+    """
+    while True:
+        print(prompt)
+        print("  1) No")
+        print("  2) Yes")
+        print("  3) Unknown")
+        raw = safe_input("> ").strip().lower()
+
+        # Accept numeric input
+        if raw.isdigit():
+            idx = int(raw)
+            if idx == 1:
+                return "No"
+            elif idx == 2:
+                return "Yes"
+            elif idx == 3:
+                return "Unknown"
+
+        # Accept y/n/u shortcuts
+        if raw in ("n", "no"):
+            return "No"
+        if raw in ("y", "yes"):
+            return "Yes"
+        if raw in ("u", "unknown"):
+            return "Unknown"
+
+        print("Pick 1/2/3 or type y/n/u.\n")
+
+
 def yes_no(prompt: str) -> bool:
     while True:
         raw = safe_input(prompt + " (y/n): ").strip().lower()
@@ -592,9 +627,18 @@ def cmd_finding_list(_args):
         print("No findings yet.")
         return
 
+    # Sort findings by numeric ID ascending
+    def finding_sort_key(f):
+        fid = f.get("id", "F-999")
+        m = re.match(r"F-(\d+)", fid)
+        return int(m.group(1)) if m else 999
+
+    findings_sorted = sorted(findings, key=finding_sort_key)
+
     print("=== Findings ===")
-    for f in findings:
-        print(f"- {f.get('id')} [{f.get('severity')}] {f.get('title')} — {f.get('affected_target')}")
+    for f in findings_sorted:
+        status = f.get('status', 'open')
+        print(f"- {f.get('id')} [{f.get('severity')}] ({status}) {f.get('title')} — {f.get('affected_target')}")
 
 
 def cmd_finding_edit(args):
@@ -900,7 +944,7 @@ def cmd_home_audit_run(_args):
     dns_filter = choose_from("DNS filtering in use:", ["None", "Router DNS filtering", "Pi-hole/AdGuard", "NextDNS", "Other/Unknown"])
     pass_strength = choose_from("Router admin password strength:", ["Unique strong", "Okay but reused", "Weak/default/suspected", "Unknown"])
     port_fw = yes_no("Any port forwards configured?")
-    exposed_services = choose_from("Any services exposed to the internet (WAN) that you know of?", ["No", "Yes", "Unknown"])
+    exposed_services = choose_yes_no_unknown("Any services exposed to the internet (WAN) that you know of?")
 
     device_count = safe_input("Approx number of devices on network (rough): ").strip() or "unknown"
 
@@ -1107,6 +1151,14 @@ def cmd_report(_args):
     work = data.get("work", {})
     findings = work.get("findings", [])
     notes = work.get("notes", [])
+
+    # Sort findings by numeric ID ascending for deterministic output
+    def finding_sort_key(f):
+        fid = f.get("id", "F-999")
+        m = re.match(r"F-(\d+)", fid)
+        return int(m.group(1)) if m else 999
+
+    findings = sorted(findings, key=finding_sort_key)
 
     sev_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Informational": 0}
     for f in findings:

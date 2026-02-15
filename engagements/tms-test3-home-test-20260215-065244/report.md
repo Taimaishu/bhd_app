@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This assessment identified **5** total findings. Severity breakdown: Critical 0, High 0, Medium 3, Low 2, Informational 0.
+This assessment identified **4** total findings. Severity breakdown: Critical 0, High 0, Medium 3, Low 1, Informational 0.
 
 ## Scope
 
@@ -39,33 +39,12 @@ The engagement followed a phased methodology. Phase status at the time of report
 
 | ID | Severity | Priority | Title | Affected Target |
 |---|---|---|---|---|
-| F-019 | Low | Backlog (90+ days) | nmap_scan | 10,168.168.1 |
 | F-020 | Medium | Planned (30–90 days) | Router Admin Credential Risk (Okay but reused) | Home Router Netgear Orbi RBE361 (10.168.168.1) |
 | F-021 | Low | Backlog (90+ days) | Guest Network Not Enabled | Wi-Fi Network (via Netgear Orbi RBE361) |
 | F-022 | Medium | Planned (30–90 days) | IoT Devices Not Segmented/Isolated | Home Network |
-| F-023 | Medium | Planned (30–90 days) | Router Web Administration Interface Accessible on LAN (HTTP/HTTPS) | Home Router Netgear Orbi RBE361 (10.168.168.1) |
+| F-023 | Medium | Planned (30–90 days) | Router Web Administration Interface Accessible on LAN | Home Router Netgear Orbi RBE361 (10.168.168.1) |
 
 ## Detailed Findings
-
-### F-019 — nmap_scan
-
-- **Severity:** Low
-- **Impact Level:** Low
-- **Likelihood:** Medium
-- **Remediation Priority:** Backlog (90+ days)
-- **Affected Target:** 10,168.168.1
-
-**Description**
-I ran nmap -Pn -T4 --top-ports 1000 10.168.168.1 -v and the reults came back with the following open TCP ports; port 53(DNS), port 80(http), port 443(https), and filtered port 6389(clariion-evr01.
-
-**Evidence**
-web ui login username is admin and the password is a good password but has been reused in other places. UPnP was eger enabled. web login seems to be only available localy, meaning no remote access. scanned for open ports and foiund 53, 80, and 443 open.
-
-**Business Impact**
-Password should be rotated every 90 days.
-
-**Recommendation**
-rotate password, and ensure UPnP is deactivated.
 
 ### F-020 — Router Admin Credential Risk (Okay but reused)
 
@@ -130,7 +109,7 @@ Compromise of one IoT device can enable lateral movement to personal computers, 
 **Recommendation**
 Create separate IoT SSID/VLAN; block IoT → LAN by default; allow only required outbound access.
 
-### F-023 — Router Web Administration Interface Accessible on LAN (HTTP/HTTPS)
+### F-023 — Router Web Administration Interface Accessible on LAN
 
 - **Severity:** Medium
 - **Impact Level:** Medium
@@ -145,10 +124,10 @@ Router admin interface is reachable on the local network over HTTP/HTTPS. If any
 nmap -Pn -T4 --top-ports 1000 10.168.168.1 shows TCP/80 and TCP/443 open; admin UI reachable from LAN; login username observed as “admin”.
 
 **Business Impact**
-Router compromise can enable DNS hijacking, traffic interception, device redirection, and persistence across the home network.Recommendation: Restrict admin UI access (LAN-only is ok), disable HTTP if possible (HTTPS only), ensure unique strong admin password + MFA if supported, and limit which devices can reach router admin UI.
+Accessed via HTTP (port 80) and HTTPS (port 443). Admin login page tested and accessible from any LAN device.
 
 **Recommendation**
-Router compromise can enable DNS hijacking, traffic interception, device redirection, and persistence across the ht admin UI access (LAN-only is ok), disable HTTP if possible (HTTPS only), ensure unique strong admin password + MFA if supported, and limit which devices can reach router admin UI.
+Router compromise can enable DNS hijacking, traffic interception, device redirection, and persistence across the home network.
 
 ## Engagement Notes
 

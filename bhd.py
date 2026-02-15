@@ -5,10 +5,12 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Sequence
 
 BASE_DIR = Path(__file__).resolve().parent
 ENG_DIR = BASE_DIR / "engagements"
 CURRENT_FILE = ENG_DIR / ".current"
+CLI_NAME = "bhd-cli"
 
 
 # --------------------------
@@ -37,12 +39,12 @@ def slugify(name: str) -> str:
 
 def pick_current_engagement() -> Path:
     if not CURRENT_FILE.exists():
-        print("No current engagement selected. Run: python3 bhd.py init", file=sys.stderr)
+        print(f"No current engagement selected. Run: {CLI_NAME} init", file=sys.stderr)
         sys.exit(1)
     rel = CURRENT_FILE.read_text().strip()
     p = (ENG_DIR / rel).resolve()
     if not p.exists():
-        print("Current engagement folder missing. Run: python3 bhd.py init", file=sys.stderr)
+        print(f"Current engagement folder missing. Run: {CLI_NAME} init", file=sys.stderr)
         sys.exit(1)
     return p
 
@@ -67,7 +69,7 @@ def safe_input(prompt: str) -> str:
         sys.exit(1)
 
 
-def choose_from(prompt: str, options: list[str]) -> str:
+def choose_from(prompt: str, options: Sequence[str]) -> str:
     while True:
         print(prompt)
         for i, opt in enumerate(options, 1):
@@ -291,7 +293,7 @@ def validate_finding_fields(title: str, description: str, evidence: str, busines
         errors.append("Evidence is too short. Record what you observed (ports, settings, URLs, screenshots note).")
     if looks_like_wizard_output(evidence):
         errors.append("Evidence looks like wizard output. Evidence should be observations/results, not 'I ran init'.")
-    if "python3 bhd.py init" in evidence.lower():
+    if f"{CLI_NAME} init" in evidence.lower() or "python3 bhd.py init" in evidence.lower():
         errors.append("Evidence is 'init'. Replace with actual evidence (e.g., router setting screenshot note, scan results summary).")
 
     if not business_impact.strip() or len(business_impact.strip()) < 20:
@@ -333,14 +335,14 @@ def next_finding_id(findings: list[dict]) -> str:
     return f"F-{max_num + 1:03d}"
 
 
-def finding_sort_key(f: dict) -> int:
+def finding_sort_key(f: dict) -> float:
     """
     Extract numeric ID from finding for sorting (F-001 -> 1, F-023 -> 23).
-    Returns 999 for malformed IDs.
+    Returns float("inf") for malformed IDs (sorts them last).
     """
-    fid = f.get("id", "F-999")
-    m = re.match(r"F-(\d+)", fid)
-    return int(m.group(1)) if m else 999
+    fid = f.get("id", "")
+    m = re.match(r"^F-(\d+)$", fid)
+    return int(m.group(1)) if m else float("inf")
 
 
 # --------------------------
@@ -351,15 +353,18 @@ def cmd_engagements_list(_args):
     eng_dirs = [d for d in ENG_DIR.iterdir() if d.is_dir()]
 
     if not eng_dirs:
-        print("No engagements yet. Run: python3 bhd.py init")
+        print(f"No engagements yet. Run: {CLI_NAME} init")
         return
 
     current = ""
     if CURRENT_FILE.exists():
         current = CURRENT_FILE.read_text().strip()
 
+    # Sort by folder name for deterministic output
+    eng_dirs = sorted(eng_dirs, key=lambda d: d.name)
+
     print("=== Engagements ===")
-    for eng_dir in sorted(eng_dirs):
+    for eng_dir in eng_dirs:
         marker = " ← CURRENT" if eng_dir.name == current else ""
         data = load_engagement(eng_dir)
         meta = data.get("meta", {})
@@ -442,7 +447,7 @@ def cmd_init(_args):
     CURRENT_FILE.write_text(engagement_name)
 
     print(f"\nCreated engagement: {engagement_name}")
-    print("Next: python3 bhd.py phase status | python3 bhd.py home-audit run | python3 bhd.py finding add | python3 bhd.py report")
+    print(f"Next: {CLI_NAME} phase status | {CLI_NAME} home-audit run | {CLI_NAME} finding add | {CLI_NAME} report")
 
 
 def cmd_show(_args):
@@ -530,7 +535,7 @@ def cmd_phase_set(args):
 
     phase_name = args.phase
     if phase_name not in phases:
-        print("Unknown phase. Use: python3 bhd.py phase status", file=sys.stderr)
+        print(f"Unknown phase. Use: {CLI_NAME} phase status", file=sys.stderr)
         sys.exit(1)
 
     new_status = args.status
@@ -553,7 +558,7 @@ def cmd_phase_note(args):
 
     phase_name = args.phase
     if phase_name not in phases:
-        print("Unknown phase. Use: python3 bhd.py phase status", file=sys.stderr)
+        print(f"Unknown phase. Use: {CLI_NAME} phase status", file=sys.stderr)
         sys.exit(1)
 
     text = args.text.strip()
@@ -815,6 +820,9 @@ def cmd_finding_search(args):
     if not matched:
         print(f"No findings match '{args.query}'")
         return
+
+    # Sort matched results by ID for deterministic output
+    matched = sorted(matched, key=finding_sort_key)
 
     print(f"=== Search Results: '{args.query}' ({len(matched)} found) ===")
     for f in matched:
@@ -1142,7 +1150,7 @@ def cmd_home_audit_run(_args):
 
     save_engagement(p, data)
     print("\nHome audit complete. Findings were added automatically.")
-    print("Next: python3 bhd.py finding list | python3 bhd.py report")
+    print(f"Next: {CLI_NAME} finding list | {CLI_NAME} report")
 
 
 # --------------------------

@@ -1,0 +1,139 @@
+{
+  "meta": {
+    "created_utc": "2026-02-15T13:52:44Z",
+    "client": "tms",
+    "project": "test3-home-test",
+    "test_type": "home"
+  },
+  "scope": {
+    "in_scope": [
+      "10.168.168.1"
+    ],
+    "out_of_scope": "",
+    "rules_of_engagement": "no Dos. scan for open ports. search for vulnerabilties. test vulnerabilities."
+  },
+  "methodology": {
+    "phases": {
+      "Pre-Engagement": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T20:15:51Z",
+        "notes": []
+      },
+      "Reconnaissance": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T19:47:53Z",
+        "notes": []
+      },
+      "Scanning": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T19:47:53Z",
+        "notes": []
+      },
+      "Enumeration": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T19:47:53Z",
+        "notes": []
+      },
+      "Vulnerability Analysis": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T19:47:53Z",
+        "notes": []
+      },
+      "Exploitation": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Reporting": {
+        "status": "complete",
+        "updated_utc": "2026-02-15T19:47:53Z",
+        "notes": []
+      }
+    }
+  },
+  "work": {
+    "notes": [
+      {
+        "ts_utc": "2026-02-15T13:59:34Z",
+        "text": "Home audit completed. Router=Netgear Orbi RBE362 (10.168.168.1), FW=unknown, WiFi=Unknown, Devices~7, DNS=Other/Unknown."
+      },
+      {
+        "ts_utc": "2026-02-15T14:52:44Z",
+        "text": "Home audit completed. Router=Netgear Orbi RBE362 (10.168.168.1), FW=V12.1.3.11_5.1.12, WiFi=WPA2, Devices~6-10, DNS=Router DNS filtering."
+      },
+      {
+        "ts_utc": "2026-02-15T18:42:15Z",
+        "text": "Home audit completed. Router=Netgear Orbi RBE361 (10.168.168.1), FW=V12.1.3.11_5.1.12, WiFi=WPA2, Devices~6-10, DNS=Router DNS filtering."
+      },
+      {
+        "ts_utc": "2026-02-15T20:15:51Z",
+        "text": "Home audit completed. Router=Netgear Orbi RBE361 (10.168.168.1), FW=V12.1.13_5.1.12, WiFi=WPA2, Devices~7, DNS=Router DNS filtering."
+      }
+    ],
+    "findings": [
+      {
+        "id": "F-020",
+        "ts_utc": "2026-02-15T20:15:51Z",
+        "title": "Router Admin Credential Risk (Okay but reused)",
+        "affected_target": "Home Router Netgear Orbi RBE361 (10.168.168.1)",
+        "description": "Router admin password was assessed as 'Okay but reused'. Weak, reused, or unverified admin credentials increase compromise risk.",
+        "impact_level": "Medium",
+        "likelihood": "Medium",
+        "severity": "Medium",
+        "remediation_priority": "Planned (30\u201390 days)",
+        "business_impact": "Compromised router credentials can lead to DNS hijacking, traffic interception, and persistent access to the network.",
+        "evidence": "Password strength selected: Okay but reused",
+        "recommendation": "Set a unique strong admin password (password manager); enable MFA if available; disable admin access from Wi-Fi guest networks.",
+        "status": "open",
+        "auto_generated": true
+      },
+      {
+        "id": "F-021",
+        "ts_utc": "2026-02-15T20:15:51Z",
+        "title": "Guest Network Not Enabled",
+        "affected_target": "Wi-Fi Network (via Netgear Orbi RBE361)",
+        "description": "Guest Wi-Fi is not enabled. Without a guest network, visitors often share the main network, increasing exposure of personal devices and IoT assets.",
+        "impact_level": "Low",
+        "likelihood": "Medium",
+        "severity": "Low",
+        "remediation_priority": "Backlog (90+ days)",
+        "business_impact": "Visitors\u2019 devices may introduce malware or insecure services into the same network as sensitive devices.",
+        "evidence": "Guest network reported disabled",
+        "recommendation": "Enable guest Wi-Fi; isolate guests from LAN; use strong password; rotate periodically.",
+        "status": "open",
+        "auto_generated": true
+      },
+      {
+        "id": "F-022",
+        "ts_utc": "2026-02-15T20:15:51Z",
+        "title": "IoT Devices Not Segmented/Isolated",
+        "affected_target": "Home Network",
+        "description": "IoT devices are not isolated from main devices. IoT devices commonly have weaker security and can become pivot points.",
+        "impact_level": "Medium",
+        "likelihood": "Medium",
+        "severity": "Medium",
+        "remediation_priority": "Planned (30\u201390 days)",
+        "business_impact": "Compromise of one IoT device can enable lateral movement to personal computers, NAS devices, and phones.",
+        "evidence": "IoT isolation reported: No",
+        "recommendation": "Create separate IoT SSID/VLAN; block IoT \u2192 LAN by default; allow only required outbound access.",
+        "status": "open",
+        "auto_generated": true
+      },
+      {
+        "id": "F-023",
+        "ts_utc": "2026-02-15T20:25:07Z",
+        "title": "Router Web Administration Interface Accessible on LAN",
+        "affected_target": "Home Router Netgear Orbi RBE361 (10.168.168.1)",
+        "description": "Router admin interface is reachable on the local network over HTTP/HTTPS. If any LAN device is compromised (or a guest joins), this increases the chance of router takeover attempts (password guessing, session hijack, known CVEs, etc.).",
+        "impact_level": "Medium",
+        "likelihood": "Medium",
+        "severity": "Medium",
+        "remediation_priority": "Planned (30\u201390 days)",
+        "business_impact": "Accessed via HTTP (port 80) and HTTPS (port 443). Admin login page tested and accessible from any LAN device.",
+        "evidence": "nmap -Pn -T4 --top-ports 1000 10.168.168.1 shows TCP/80 and TCP/443 open; admin UI reachable from LAN; login username observed as \u201cadmin\u201d.",
+        "recommendation": "Router compromise can enable DNS hijacking, traffic interception, device redirection, and persistence across the home network.",
+        "status": "open"
+      }
+    ]
+  }
+}

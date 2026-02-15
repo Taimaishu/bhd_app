@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "created_utc": "2026-02-15T13:24:39Z",
+    "client": "taimaishu",
+    "project": "test",
+    "test_type": "home"
+  },
+  "scope": {
+    "in_scope": [
+      "10.168.168.0/24"
+    ],
+    "out_of_scope": "",
+    "rules_of_engagement": "no Dos. test home network security posture. do not exploit."
+  },
+  "methodology": {
+    "phases": {
+      "Pre-Engagement": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Reconnaissance": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Scanning": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Enumeration": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Vulnerability Analysis": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Exploitation": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      },
+      "Reporting": {
+        "status": "not_started",
+        "updated_utc": null,
+        "notes": []
+      }
+    }
+  },
+  "work": {
+    "notes": [],
+    "findings": [
+      {
+        "id": "F-001",
+        "ts_utc": "2026-02-15T13:35:36Z",
+        "title": "not started",
+        "affected_target": "10.168.168.0/24",
+        "description": "pre-engangement not started. recon not started. scanning not started. enum not started. vuln analysis not started. exploitation not started. reporting noit started.",
+        "impact_level": "Informational",
+        "likelihood": "Low",
+        "severity": "Informational",
+        "remediation_priority": "As appropriate",
+        "business_impact": "=== Black Hat Defense CLI \u2014 New Engagement Wizard ===",
+        "evidence": "taimaishu@TMS-Radio-Satellite:~/BlackHatDefenseLLC/bhd_app$ python3 bhd.py init",
+        "recommendation": "Client name: taimaishu",
+        "status": "open"
+      }
+    ]
+  }
+}

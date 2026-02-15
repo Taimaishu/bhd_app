@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "created_utc": "2026-02-15T12:23:40Z",
+    "client": "Tyler",
+    "project": "Test",
+    "test_type": "home"
+  },
+  "scope": {
+    "in_scope": [
+      "10.168.168.0/24",
+      "10.168.168.218"
+    ],
+    "out_of_scope": "",
+    "rules_of_engagement": "no Dos. do recon and find vulnerabilities. do not exploit. this is my home and we are testing the network security posture."
+  },
+  "work": {
+    "notes": [],
+    "findings": []
+  }
+}

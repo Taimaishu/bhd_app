@@ -333,6 +333,16 @@ def next_finding_id(findings: list[dict]) -> str:
     return f"F-{max_num + 1:03d}"
 
 
+def finding_sort_key(f: dict) -> int:
+    """
+    Extract numeric ID from finding for sorting (F-001 -> 1, F-023 -> 23).
+    Returns 999 for malformed IDs.
+    """
+    fid = f.get("id", "F-999")
+    m = re.match(r"F-(\d+)", fid)
+    return int(m.group(1)) if m else 999
+
+
 # --------------------------
 # Commands (Core)
 # --------------------------
@@ -627,12 +637,6 @@ def cmd_finding_list(_args):
         print("No findings yet.")
         return
 
-    # Sort findings by numeric ID ascending
-    def finding_sort_key(f):
-        fid = f.get("id", "F-999")
-        m = re.match(r"F-(\d+)", fid)
-        return int(m.group(1)) if m else 999
-
     findings_sorted = sorted(findings, key=finding_sort_key)
 
     print("=== Findings ===")
@@ -776,6 +780,9 @@ def cmd_finding_filter(args):
     if not filtered:
         print("No findings match your filters.")
         return
+
+    # Sort filtered results by ID for deterministic output
+    filtered = sorted(filtered, key=finding_sort_key)
 
     print(f"=== Findings (filtered: {len(filtered)} of {len(findings)}) ===")
     for f in filtered:
@@ -1153,11 +1160,6 @@ def cmd_report(_args):
     notes = work.get("notes", [])
 
     # Sort findings by numeric ID ascending for deterministic output
-    def finding_sort_key(f):
-        fid = f.get("id", "F-999")
-        m = re.match(r"F-(\d+)", fid)
-        return int(m.group(1)) if m else 999
-
     findings = sorted(findings, key=finding_sort_key)
 
     sev_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Informational": 0}

@@ -7,7 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Sequence
 
-BASE_DIR = Path(__file__).resolve().parent
+# BASE_DIR is current working directory (where user runs the command)
+# This allows engagements/ to be created in the working directory
+BASE_DIR = Path.cwd()
 ENG_DIR = BASE_DIR / "engagements"
 CURRENT_FILE = ENG_DIR / ".current"
 CLI_NAME = "bhd-cli"

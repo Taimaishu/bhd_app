@@ -17,24 +17,35 @@ A professional CLI for managing penetration testing engagements, tracking findin
 
 ## Installation
 
-### Option 1: Install with pipx (recommended for CLI tools)
+### Option 1: Install from GitHub (recommended)
 
 ```bash
-cd ~/BlackHatDefenseLLC/bhd_app
+pipx install git+https://github.com/Taimaishu/bhd_app.git
+```
+
+This installs directly from GitHub without cloning. Use `pipx` for isolated installation or `pip` for system-wide.
+
+### Option 2: Install from local clone with pipx
+
+```bash
+git clone https://github.com/Taimaishu/bhd_app.git
+cd bhd_app
 pipx install .
 ```
 
-### Option 2: Install with pip
+### Option 3: Install from local clone with pip
 
 ```bash
-cd ~/BlackHatDefenseLLC/bhd_app
+git clone https://github.com/Taimaishu/bhd_app.git
+cd bhd_app
 pip install .
 ```
 
-### Option 3: Development install (editable)
+### Option 4: Development install (editable)
 
 ```bash
-cd ~/BlackHatDefenseLLC/bhd_app
+git clone https://github.com/Taimaishu/bhd_app.git
+cd bhd_app
 pip install -e ".[dev]"
 ```
 

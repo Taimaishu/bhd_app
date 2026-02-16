@@ -1,4 +1,18 @@
 #!/bin/bash
-# bhd-cli wrapper - executes bhd.py in the same directory
+# bhd-cli wrapper - prefers installed version, falls back to development mode
+#
+# If bhd-cli is installed (pip install -e . or pipx install .),
+# it will be in PATH and this wrapper isn't needed.
+#
+# This wrapper is for development use and backwards compatibility.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec python3 "$SCRIPT_DIR/bhd.py" "$@"
+
+# Check if bhd-cli is installed in PATH (not this script)
+if command -v bhd-cli >/dev/null 2>&1 && [ "$(command -v bhd-cli)" != "$SCRIPT_DIR/bhd-cli" ]; then
+    # Use installed version
+    exec bhd-cli "$@"
+else
+    # Fallback to development mode
+    exec python3 -m bhd_cli.cli "$@"
+fi

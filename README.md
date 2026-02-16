@@ -1,19 +1,29 @@
 # bhd-cli
 
-**Black Hat Defense CLI** - Penetration testing engagement and finding management tool.
+**Security Engagement Documentation Framework for Independent Consultants**
 
-A professional CLI for managing penetration testing engagements, tracking findings with risk scoring, and generating client-ready reports.
+A professional command-line tool for managing penetration testing engagements, tracking findings with validated risk scoring, and generating client-ready reports. Built for security consultants who need reliable documentation workflows without enterprise overhead.
 
 ## Features
 
+### Core Capabilities
 - ✅ **Engagement Management** - Track multiple client engagements with proper scope and ROE
 - ✅ **Finding Management** - Add, edit, delete, search, and filter security findings
 - ✅ **Risk Scoring** - Guided impact/likelihood assessment with coaching
 - ✅ **Methodology Tracking** - Phase-based pentest methodology with status updates
-- ✅ **Home Audit Wizard** - Quick assessment tool for home networks
-- ✅ **Report Generation** - Professional markdown reports with executive summaries
-- ✅ **Deterministic Output** - Consistent, sorted findings for reliable reporting
 - ✅ **Validation & Guardrails** - Prevents bad data entry with helpful feedback
+- ✅ **Deterministic Output** - Consistent, sorted findings for reliable reporting
+
+### Export & Reporting
+- ✅ **Markdown Reports** - Professional reports with executive summaries
+- ✅ **JSON Export** - Clean, structured data export for archival or integration
+- ✅ **PDF Export** - Client-ready PDF reports (requires reportlab)
+- ✅ **Storage Abstraction** - Modular backend design (JSON now, SQLite ready)
+
+### Specialized Tools
+- ✅ **Home Audit Wizard** - Quick assessment tool for home networks
+- ✅ **Multi-Engagement Support** - Seamlessly switch between client projects
+- ✅ **Command-Line First** - Fast, scriptable, no GUI dependencies
 
 ## Installation
 
@@ -47,6 +57,16 @@ pip install .
 git clone https://github.com/Taimaishu/bhd_app.git
 cd bhd_app
 pip install -e ".[dev]"
+```
+
+### Optional: PDF Export Support
+
+To enable PDF export functionality:
+
+```bash
+pip install reportlab
+# OR install with PDF support
+pipx install "git+https://github.com/Taimaishu/bhd_app.git[pdf]"
 ```
 
 After installation, `bhd-cli` will be available in your PATH.
@@ -112,18 +132,36 @@ bhd-cli finding status F-001 remediated
 bhd-cli finding delete F-001
 ```
 
-### 4. Generate report
+### 4. Generate reports and exports
 
 ```bash
+# Generate markdown report
 bhd-cli report
+
+# Export current engagement to JSON
+bhd-cli export json
+
+# Export ALL engagements to JSON
+bhd-cli export json --all
+
+# Export current engagement to PDF (requires: pip install reportlab)
+bhd-cli export pdf
+
+# Export ALL engagements to PDF
+bhd-cli export pdf --all
+
+# Check version
+bhd-cli version
 ```
 
-Creates `report.md` in the engagement folder with:
-- Executive summary
-- Scope and ROE
-- Methodology phases
-- Findings summary table (sorted by ID)
-- Detailed findings with evidence and recommendations
+**Report outputs:**
+- `report.md` - Markdown report with executive summary, scope, methodology, and findings
+- `export.json` - Clean JSON export with deterministic ordering (meta, scope, methodology, work)
+- `report.pdf` - Professional PDF report generated from report.md
+
+**Export modes:**
+- Default (no `--all`): Exports only the current engagement
+- With `--all`: Exports all engagements in `./engagements` directory (processed in deterministic alphabetical order)
 
 ### 5. Manage multiple engagements
 
@@ -190,12 +228,21 @@ bhd-cli phase note <phase> <text>     # Add phase note
 
 **Phase names:** Pre-Engagement, Reconnaissance, Scanning, Enumeration, Vulnerability Analysis, Exploitation, Reporting
 
+### Export & Reporting
+```bash
+bhd-cli report                        # Generate report.md
+bhd-cli export json                   # Export current engagement to JSON
+bhd-cli export json --all             # Export all engagements to JSON
+bhd-cli export pdf                    # Export current engagement to PDF (requires reportlab)
+bhd-cli export pdf --all              # Export all engagements to PDF
+bhd-cli version                       # Show version
+```
+
 ### Other
 ```bash
 bhd-cli add-target <IP>               # Add target to scope
 bhd-cli note <text>                   # Add general note
 bhd-cli home-audit run                # Run home audit wizard
-bhd-cli report                        # Generate report
 ```
 
 ## Development
@@ -274,10 +321,56 @@ bhd-cli finding list
 bhd-cli report
 ```
 
+## Changelog
+
+### v1.1.0 (2026-02-15)
+
+**New Features:**
+- Added `bhd-cli version` command to display version information
+- Added `bhd-cli export json` for clean JSON data export with deterministic ordering
+- Added `bhd-cli export pdf` for professional PDF report generation (optional reportlab dependency)
+- Implemented storage abstraction layer (`storage.py`) for future SQLite backend support
+
+**Architecture:**
+- Refactored data persistence into modular storage layer
+- JSON remains current backend; SQLite-ready architecture
+- No breaking changes; full backwards compatibility maintained
+
+**Documentation:**
+- Updated README with new "Security Engagement Documentation Framework" positioning
+- Added export command documentation
+- Added optional PDF dependency instructions
+- Reorganized feature list by capability area
+
+### v1.0.0 (2026-02-15)
+
+Initial production release with engagement management, finding tracking, risk scoring, methodology tracking, home audit wizard, and markdown report generation.
+
+## Roadmap
+
+### v1.2.0 (Planned)
+- SQLite backend option for improved performance and querying
+- Finding templates library for common vulnerabilities
+- Custom report templates
+- Engagement archival and compression
+
+### v1.3.0 (Planned)
+- Multi-user support with role-based access
+- API endpoints for integration with other tools
+- Web UI for report viewing (optional)
+- Bulk import/export capabilities
+
+### Future Considerations
+- Integration with popular pentest tools (Nmap, Burp, etc.)
+- Automated evidence attachment and screenshot management
+- Client portal for findings review
+- Compliance framework mapping (OWASP, CIS, etc.)
+
 ## Requirements
 
 - Python 3.10 or later
 - No external dependencies (uses stdlib only)
+- Optional: `reportlab>=4.0` for PDF export functionality
 
 ## License
 
@@ -290,6 +383,20 @@ Contributions welcome! Please ensure:
 - Code compiles: `python -m py_compile src/bhd_cli/cli.py`
 - Existing commands and behavior preserved
 - UX text matches CLI_NAME constant
+
+## Release Process
+
+To create a new release:
+
+```bash
+# Tag the release
+git tag -a v1.1.0 -m "Release v1.1.0"
+
+# Push with tags
+git push origin master --tags
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Authors
 

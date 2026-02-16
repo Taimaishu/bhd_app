@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bhd-cli"
-version = "1.0.0"
-description = "Penetration testing engagement and finding management CLI"
+version = "1.1.0"
+description = "Security engagement documentation framework for independent consultants"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -27,9 +27,16 @@ bhd-cli = "bhd_cli.cli:main"
 dev = [
     "pytest>=7.0",
 ]
+pdf = [
+    "reportlab>=4.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 bhd_cli = ["py.typed"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

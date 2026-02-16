@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Sequence
 
+from bhd_cli.storage import storage
+
 # BASE_DIR is current working directory (where user runs the command)
 # This allows engagements/ to be created in the working directory
 BASE_DIR = Path.cwd()
@@ -51,16 +53,46 @@ def pick_current_engagement() -> Path:
     return p
 
 
+def get_all_engagement_folders() -> list[Path]:
+    """
+    Get all engagement folders sorted by name for deterministic processing.
+    Returns empty list if engagements directory doesn't exist or has no subdirs.
+    """
+    if not ENG_DIR.exists():
+        return []
+
+    folders = []
+    for item in ENG_DIR.iterdir():
+        if item.is_dir() and item.name != ".git":
+            # Skip hidden directories and version control
+            if not item.name.startswith("."):
+                folders.append(item)
+
+    # Sort by folder name for deterministic ordering
+    return sorted(folders, key=lambda p: p.name)
+
+
+def relative_path_display(path: Path) -> str:
+    """
+    Convert absolute path to relative path for display.
+    Returns path relative to current working directory.
+    Falls back to absolute path if relative conversion fails.
+    """
+    try:
+        return str(path.relative_to(BASE_DIR))
+    except ValueError:
+        # Path is not relative to BASE_DIR, return as-is
+        return str(path)
+
+
 def load_engagement(p: Path) -> dict:
-    f = p / "engagement.json"
-    if not f.exists():
-        return {}
-    return json.loads(f.read_text())
+    """Load engagement data using storage abstraction layer."""
+    return storage.load(p)
 
 
 def save_engagement(p: Path, data: dict):
-    f = p / "engagement.json"
-    f.write_text(json.dumps(data, indent=2, sort_keys=False))
+    """Save engagement data using storage abstraction layer."""
+    storage.save(p, data)
 
 
 def safe_input(prompt: str) -> str:
@@ -1158,6 +1190,216 @@ def cmd_home_audit_run(_args):
 
 
 # --------------------------
+# Version
+# --------------------------
+def cmd_version(_args):
+    """Display bhd-cli version."""
+    from bhd_cli import __version__
+    print(f"{CLI_NAME} {__version__}")
+
+
+# --------------------------
+# Export
+# --------------------------
+def cmd_export_json(args):
+    """Export engagement(s) to JSON file(s)."""
+    if args.all:
+        # Export all engagements
+        folders = get_all_engagement_folders()
+        if not folders:
+            print("No engagements found in ./engagements")
+            return
+
+        print(f"Exporting {len(folders)} engagement(s)...")
+        for p in folders:
+            export_path = p / "export.json"
+            storage.export_json(p, export_path)
+            print(f"  {relative_path_display(export_path)}")
+        print(f"Exported {len(folders)} engagement(s) to JSON")
+    else:
+        # Export current engagement only
+        p = pick_current_engagement()
+        export_path = p / "export.json"
+        storage.export_json(p, export_path)
+        print(f"Exported engagement to: {relative_path_display(export_path)}")
+
+
+def generate_pdf_from_markdown(report_md: Path, report_pdf: Path):
+    """
+    Generate PDF from markdown file using reportlab.
+    Raises ImportError if reportlab is not installed.
+    """
+    # Import reportlab only when needed (not a hard dependency)
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+    # Read report.md
+    content = report_md.read_text()
+
+    # Create PDF
+    doc = SimpleDocTemplate(str(report_pdf), pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor='#1a1a1a',
+        spaceAfter=30,
+        alignment=TA_CENTER,
+    )
+
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor='#2c3e50',
+        spaceAfter=12,
+        spaceBefore=12,
+    )
+
+    subheading_style = ParagraphStyle(
+        'CustomSubHeading',
+        parent=styles['Heading3'],
+        fontSize=14,
+        textColor='#34495e',
+        spaceAfter=10,
+        spaceBefore=10,
+    )
+
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['BodyText'],
+        fontSize=11,
+        leading=14,
+        alignment=TA_LEFT,
+    )
+
+    # Parse markdown and convert to PDF elements
+    lines = content.split('\n')
+    for line in lines:
+        line = line.rstrip()
+
+        # Title (# heading)
+        if line.startswith('# '):
+            text = line[2:].strip()
+            story.append(Paragraph(text, title_style))
+            story.append(Spacer(1, 0.2 * inch))
+
+        # Heading 2 (## heading)
+        elif line.startswith('## '):
+            text = line[3:].strip()
+            story.append(Spacer(1, 0.2 * inch))
+            story.append(Paragraph(text, heading_style))
+
+        # Heading 3 (### heading)
+        elif line.startswith('### '):
+            text = line[4:].strip()
+            story.append(Paragraph(text, subheading_style))
+
+        # Bullet point
+        elif line.startswith('- ') or line.startswith('* '):
+            text = line[2:].strip()
+            story.append(Paragraph(f"• {text}", body_style))
+
+        # Empty line
+        elif not line.strip():
+            story.append(Spacer(1, 0.1 * inch))
+
+        # Regular text
+        else:
+            if line.strip():
+                # Escape special characters for reportlab
+                text = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                story.append(Paragraph(text, body_style))
+
+    # Build PDF
+    doc.build(story)
+
+
+def export_single_pdf(engagement_path: Path, generate_report_if_missing: bool = True):
+    """
+    Export a single engagement to PDF.
+    Returns the path to the generated PDF.
+    """
+    report_md = engagement_path / "report.md"
+    report_pdf = engagement_path / "report.pdf"
+
+    # If report.md doesn't exist, generate it first
+    if not report_md.exists():
+        if generate_report_if_missing:
+            # Need to temporarily set this engagement as current for cmd_report
+            # For --all mode, we just skip if report.md doesn't exist
+            return None
+        else:
+            print(f"report.md not found. Generating it first...")
+            # This only works for single engagement mode where we have context
+            # In --all mode, we skip engagements without report.md
+            return None
+
+    generate_pdf_from_markdown(report_md, report_pdf)
+    return report_pdf
+
+
+def cmd_export_pdf(args):
+    """Export engagement report(s) to PDF."""
+    # Check reportlab availability first
+    try:
+        import reportlab
+    except ImportError:
+        print(f"Error: reportlab not installed. Install with:", file=sys.stderr)
+        print(f"  pip install reportlab", file=sys.stderr)
+        sys.exit(1)
+
+    if args.all:
+        # Export all engagements
+        folders = get_all_engagement_folders()
+        if not folders:
+            print("No engagements found in ./engagements")
+            return
+
+        print(f"Exporting {len(folders)} engagement(s) to PDF...")
+        exported_count = 0
+        skipped = []
+
+        for p in folders:
+            report_md = p / "report.md"
+            if not report_md.exists():
+                skipped.append(p.name)
+                continue
+
+            try:
+                report_pdf = p / "report.pdf"
+                generate_pdf_from_markdown(report_md, report_pdf)
+                print(f"  {relative_path_display(report_pdf)}")
+                exported_count += 1
+            except Exception as e:
+                print(f"  Warning: Failed to export {p.name}: {e}", file=sys.stderr)
+
+        print(f"Exported {exported_count} engagement(s) to PDF")
+        if skipped:
+            print(f"Skipped {len(skipped)} engagement(s) without report.md: {', '.join(skipped)}")
+    else:
+        # Export current engagement only
+        p = pick_current_engagement()
+        report_md = p / "report.md"
+        report_pdf = p / "report.pdf"
+
+        # If report.md doesn't exist, generate it first
+        if not report_md.exists():
+            print(f"report.md not found. Generating it first...")
+            cmd_report(args)
+
+        generate_pdf_from_markdown(report_md, report_pdf)
+        print(f"Exported report to: {relative_path_display(report_pdf)}")
+
+
+# --------------------------
 # Report
 # --------------------------
 def cmd_report(_args):
@@ -1366,7 +1608,20 @@ def build_parser():
     home_sub = p_home.add_subparsers(dest="home_cmd", required=True)
     home_sub.add_parser("run", help="Run home audit wizard and auto-create findings").set_defaults(func=cmd_home_audit_run)
 
+    # Export group
+    p_export = sub.add_parser("export", help="Export engagement data")
+    export_sub = p_export.add_subparsers(dest="export_cmd", required=True)
+
+    p_export_json = export_sub.add_parser("json", help="Export engagement(s) to JSON")
+    p_export_json.add_argument("--all", action="store_true", help="Export all engagements (default: current only)")
+    p_export_json.set_defaults(func=cmd_export_json)
+
+    p_export_pdf = export_sub.add_parser("pdf", help="Export engagement report(s) to PDF")
+    p_export_pdf.add_argument("--all", action="store_true", help="Export all engagements (default: current only)")
+    p_export_pdf.set_defaults(func=cmd_export_pdf)
+
     sub.add_parser("report", help="Generate report.md for the current engagement").set_defaults(func=cmd_report)
+    sub.add_parser("version", help="Show version information").set_defaults(func=cmd_version)
 
     return parser
 

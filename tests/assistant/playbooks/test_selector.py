@@ -278,3 +278,69 @@ def test_selector_explain_mode_no_match(selector):
         if not rule.get("matched"):
             assert "failure_reasons" in rule
             assert len(rule["failure_reasons"]) > 0
+
+
+def test_selector_rdp_service(selector):
+    """Test that selector matches RDP services."""
+    observations = [
+        Observation(
+            id="obs-1",
+            source_artifact="nmap-scan",
+            category=ObservationCategory.SERVICE,
+            tags=["service", "rdp"],
+            confidence=1.0,
+            data={
+                "port": 3389,
+                "service": "rdp",
+                "service_raw": "ms-wbt-server",
+                "product": "Microsoft Terminal Services",
+                "version": "10.0"
+            }
+        )
+    ]
+
+    result = selector.select_playbook(observations, "network")
+    assert result == "exposed_admin_interfaces"
+
+
+def test_selector_vnc_service(selector):
+    """Test that selector matches VNC services."""
+    observations = [
+        Observation(
+            id="obs-1",
+            source_artifact="nmap-scan",
+            category=ObservationCategory.SERVICE,
+            tags=["service", "vnc"],
+            confidence=1.0,
+            data={
+                "port": 5900,
+                "service": "vnc",
+                "service_raw": "rfb",
+                "product": "RealVNC",
+                "version": "4.1.2"
+            }
+        )
+    ]
+
+    result = selector.select_playbook(observations, "network")
+    assert result == "exposed_admin_interfaces"
+
+
+def test_selector_telnet_service(selector):
+    """Test that selector matches Telnet services."""
+    observations = [
+        Observation(
+            id="obs-1",
+            source_artifact="nmap-scan",
+            category=ObservationCategory.SERVICE,
+            tags=["service", "telnet"],
+            confidence=1.0,
+            data={
+                "port": 23,
+                "service": "telnet"
+            }
+        )
+    ]
+
+    result = selector.select_playbook(observations, "network")
+    assert result == "exposed_admin_interfaces"

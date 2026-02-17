@@ -34,7 +34,7 @@ rules:
       - category: service
         data_contains:
           - key: service
-            values: [ssh, rdp, telnet, vnc, "remote desktop"]
+            values: [ssh, rdp, telnet, vnc]
     playbook_id: exposed_admin_interfaces
     priority: 90
 
@@ -44,7 +44,7 @@ rules:
       - category: port
         data_contains:
           - key: service
-            values: [ssh, rdp, telnet, vnc, "remote desktop"]
+            values: [ssh, rdp, telnet, vnc]
     playbook_id: exposed_admin_interfaces
     priority: 89
 

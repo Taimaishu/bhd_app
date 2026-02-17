@@ -189,3 +189,150 @@ def test_nmap_parser_multi_host():
     hosts = [obs.data["host"] for obs in observations]
     assert "192.168.1.1" in hosts
     assert "192.168.1.2" in hosts
+
+
+def test_nmap_parser_rdp_canonicalization():
+    """Test that parser canonicalizes RDP service aliases."""
+    # Test ms-wbt-server alias
+    rdp_xml = """<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -p3389 10.0.0.1" start="1708185600">
+<host>
+<address addr="10.0.0.1" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="3389">
+<state state="open" reason="syn-ack"/>
+<service name="ms-wbt-server" product="Microsoft Terminal Services" version="10.0" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>
+"""
+
+    parser = NmapParser()
+    observations = parser.parse("nmap", rdp_xml)
+
+    assert len(observations) == 1
+    obs = observations[0]
+
+    # Should canonicalize to "rdp"
+    assert obs.data["service"] == "rdp"
+    assert obs.data["service_raw"] == "ms-wbt-server"
+    assert obs.data["port"] == 3389
+    assert obs.category == ObservationCategory.SERVICE
+    assert "rdp" in obs.tags
+
+
+def test_nmap_parser_vnc_rfb_canonicalization():
+    """Test that parser canonicalizes VNC/RFB service aliases."""
+    vnc_xml = """<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -p5900 10.0.0.1" start="1708185600">
+<host>
+<address addr="10.0.0.1" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="5900">
+<state state="open" reason="syn-ack"/>
+<service name="rfb" product="RealVNC" version="4.1.2" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>
+"""
+
+    parser = NmapParser()
+    observations = parser.parse("nmap", vnc_xml)
+
+    assert len(observations) == 1
+    obs = observations[0]
+
+    # Should canonicalize rfb to "vnc"
+    assert obs.data["service"] == "vnc"
+    assert obs.data["service_raw"] == "rfb"
+    assert obs.data["port"] == 5900
+    assert obs.category == ObservationCategory.SERVICE
+    assert "vnc" in obs.tags
+
+
+def test_nmap_parser_product_based_rdp_detection():
+    """Test that parser detects RDP from product string even with weird service name."""
+    rdp_product_xml = """<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -p3389 10.0.0.1" start="1708185600">
+<host>
+<address addr="10.0.0.1" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="3389">
+<state state="open" reason="syn-ack"/>
+<service name="unknown" product="Microsoft Remote Desktop Services" conf="8"/>
+</port>
+</ports>
+</host>
+</nmaprun>
+"""
+
+    parser = NmapParser()
+    observations = parser.parse("nmap", rdp_product_xml)
+
+    assert len(observations) == 1
+    obs = observations[0]
+
+    # Should detect RDP from product string
+    assert obs.data["service"] == "rdp"
+    assert obs.data["service_raw"] == "unknown"
+    assert obs.data["product"] == "Microsoft Remote Desktop Services"
+
+
+def test_nmap_parser_ssh_unchanged():
+    """Test that existing SSH detection still works correctly."""
+    ssh_xml = """<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -p22 10.0.0.1" start="1708185600">
+<host>
+<address addr="10.0.0.1" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="22">
+<state state="open" reason="syn-ack"/>
+<service name="ssh" product="OpenSSH" version="8.9p1" conf="10"/>
+</port>
+</ports>
+</host>
+</nmaprun>
+"""
+
+    parser = NmapParser()
+    observations = parser.parse("nmap", ssh_xml)
+
+    assert len(observations) == 1
+    obs = observations[0]
+
+    # SSH should remain unchanged (canonical name = raw name)
+    assert obs.data["service"] == "ssh"
+    assert "service_raw" not in obs.data  # Not stored when same as canonical
+    assert obs.data["product"] == "OpenSSH"
+    assert obs.data["version"] == "8.9p1"
+    assert obs.category == ObservationCategory.SERVICE
+    assert "ssh" in obs.tags
+
+
+def test_nmap_parser_telnet_canonicalization():
+    """Test that parser handles telnet correctly."""
+    telnet_xml = """<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -p23 10.0.0.1" start="1708185600">
+<host>
+<address addr="10.0.0.1" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="23">
+<state state="open" reason="syn-ack"/>
+<service name="telnet" conf="8"/>
+</port>
+</ports>
+</host>
+</nmaprun>
+"""
+
+    parser = NmapParser()
+    observations = parser.parse("nmap", telnet_xml)
+
+    assert len(observations) == 1
+    obs = observations[0]
+
+    assert obs.data["service"] == "telnet"
+    assert obs.data["port"] == 23
+    assert "telnet" in obs.tags

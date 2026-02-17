@@ -3,7 +3,7 @@ import hashlib
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from ...core.entities import Observation, ObservationCategory
 from ...core.ports import IParserPort
@@ -11,6 +11,59 @@ from ...core.ports import IParserPort
 
 class NmapParser(IParserPort):
     """Parser for Nmap XML output."""
+
+    @staticmethod
+    def _canonicalize_service(
+        service_name: Optional[str],
+        product: Optional[str],
+        tunnel: Optional[str] = None,
+        extra: Optional[dict] = None
+    ) -> Optional[str]:
+        """Canonicalize service names to handle Nmap aliases.
+
+        Nmap uses various service names and product strings for the same service:
+        - RDP: "ms-wbt-server", "msrdp", "rdp" or product containing "Remote Desktop"
+        - VNC: "rfb", "vnc" or product containing "VNC"
+        - SSH: "ssh"
+        - Telnet: "telnet"
+
+        Args:
+            service_name: Raw service name from Nmap
+            product: Product string from Nmap
+            tunnel: Tunnel type (e.g., "ssl") - currently unused but available
+            extra: Extra service attributes - currently unused but available
+
+        Returns:
+            Canonical service name (lowercase) or None
+        """
+        # Normalize inputs
+        service_lower = service_name.lower() if service_name else None
+        product_lower = product.lower() if product else None
+
+        # SSH detection
+        if service_lower in {"ssh"}:
+            return "ssh"
+
+        # RDP detection
+        if service_lower in {"ms-wbt-server", "msrdp", "rdp"}:
+            return "rdp"
+        if product_lower and any(x in product_lower for x in ["remote desktop", "terminal services"]):
+            return "rdp"
+
+        # VNC detection
+        if service_lower in {"vnc", "rfb"}:
+            return "vnc"
+        if product_lower and "vnc" in product_lower:
+            return "vnc"
+
+        # Telnet detection
+        if service_lower in {"telnet"}:
+            return "telnet"
+        if product_lower and "telnet" in product_lower:
+            return "telnet"
+
+        # If no canonical mapping, return original (lowercased if exists)
+        return service_lower
 
     def can_parse(self, tool_name: str, output: str) -> bool:
         """Check if this parser can handle the given tool output."""
@@ -86,19 +139,25 @@ class NmapParser(IParserPort):
                     service_version = service_elem.get("version")
                     service_conf = int(service_elem.get("conf", "5"))
 
+                # Canonicalize service name
+                canonical_service = self._canonicalize_service(
+                    service_name,
+                    service_product
+                )
+
                 # Determine category and confidence
                 if service_product or service_version:
                     # If we have version info, this is a service observation
                     category = ObservationCategory.SERVICE
                     confidence = service_conf / 10.0  # Convert 0-10 to 0.0-1.0
-                    tags = ["service", service_name] if service_name else ["service"]
+                    tags = ["service", canonical_service] if canonical_service else ["service"]
                 else:
                     # Just an open port
                     category = ObservationCategory.PORT
                     confidence = 0.95  # High confidence for open ports
                     tags = ["open", protocol]
-                    if service_name:
-                        tags.append(service_name)
+                    if canonical_service:
+                        tags.append(canonical_service)
 
                 # Build observation data
                 data = {
@@ -111,8 +170,11 @@ class NmapParser(IParserPort):
                 if hostname:
                     data["hostname"] = hostname
 
-                if service_name:
-                    data["service"] = service_name
+                # Store canonical service name and preserve raw if different
+                if canonical_service:
+                    data["service"] = canonical_service
+                    if service_name and service_name.lower() != canonical_service:
+                        data["service_raw"] = service_name
 
                 if service_product:
                     data["product"] = service_product

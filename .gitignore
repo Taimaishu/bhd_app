@@ -63,3 +63,7 @@ venv.bak/
 
 # Project specific
 engagements/
+
+# bhd-assist specific
+decision_log.jsonl
+.bhd-assist/

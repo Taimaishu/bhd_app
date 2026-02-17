@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["id", "version", "name", "type", "test_types", "steps", "evidence_objects", "finding_template", "safety_constraints"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique playbook identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable playbook name"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["validation", "evidence_collection", "verification"],
+      "description": "Playbook type"
+    },
+    "test_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["web", "network", "home", "ics", "scada", "ot", "osint", "other"]
+      },
+      "description": "Applicable test types"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed playbook description"
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Prerequisites before using this playbook"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_number", "action", "description"],
+        "properties": {
+          "step_number": {"type": "integer"},
+          "action": {"type": "string"},
+          "description": {"type": "string"},
+          "expected_outcome": {"type": "string"},
+          "tools": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      },
+      "description": "Step-by-step validation actions"
+    },
+    "evidence_objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "description"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {
+            "type": "string",
+            "enum": ["request_response", "screenshot", "config", "banner", "log", "timestamp"]
+          },
+          "description": {"type": "string"},
+          "required": {"type": "boolean"}
+        }
+      },
+      "description": "Evidence to collect"
+    },
+    "finding_template": {
+      "type": "object",
+      "required": ["title", "description", "impact_level", "likelihood", "remediation", "business_impact"],
+      "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "impact_level": {
+          "type": "string",
+          "enum": ["Critical", "High", "Medium", "Low", "Informational"]
+        },
+        "likelihood": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"]
+        },
+        "remediation": {"type": "string"},
+        "business_impact": {"type": "string"}
+      },
+      "description": "Template for finding generation"
+    },
+    "safety_constraints": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "DO NOT actions and safety rules"
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "url": {"type": "string"}
+        }
+      },
+      "description": "Reference materials"
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Tags for categorization"
+    }
+  }
+}

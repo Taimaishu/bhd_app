@@ -1,0 +1,167 @@
+id: modbus_exposure
+version: 1.0.0
+name: Modbus TCP Exposure Validation
+type: validation
+test_types:
+  - ics
+  - scada
+  - ot
+description: |
+  Validation playbook for verifying Modbus TCP protocol exposure in industrial
+  control systems. Modbus is a common ICS protocol with no built-in authentication.
+  This playbook focuses on READ-ONLY verification and evidence collection.
+
+prerequisites:
+  - Written authorization from facility owner/operator
+  - Approval from operations/safety personnel
+  - Understanding of production schedules (test during maintenance windows)
+  - Confirmed non-impact testing methodology
+
+steps:
+  - step_number: 1
+    action: Confirm Authorization and Safety
+    description: |
+      Verify written authorization from all required parties: facility management,
+      operations, safety, and IT/OT security. Confirm testing window and
+      emergency stop procedures.
+    expected_outcome: Documented authorization from all stakeholders
+    tools:
+      - Authorization documents
+
+  - step_number: 2
+    action: Identify Modbus TCP Services
+    description: |
+      Scan for Modbus TCP port 502. Identify systems responding on this port.
+      Record IP addresses, response timing, and basic connectivity.
+    expected_outcome: List of systems with Modbus TCP port 502 open
+    tools:
+      - nmap (port 502 only, -p 502)
+
+  - step_number: 3
+    action: Verify Modbus Protocol Response
+    description: |
+      Send a basic Modbus function code 0x08 (Diagnostic) or 0x11 (Report Slave ID)
+      to verify Modbus protocol is actually running. Record responses.
+    expected_outcome: Confirmation of Modbus TCP protocol presence
+    tools:
+      - modscan (read-only mode)
+      - mbpoll (diagnostic only)
+
+  - step_number: 4
+    action: Read Device Identification (Read-Only)
+    description: |
+      Use Modbus function code 0x2B/0x0E (Read Device Identification) to
+      retrieve basic device information. This is a READ-ONLY operation.
+    expected_outcome: Device vendor, product code, version (if supported)
+    tools:
+      - modscan
+      - mbpoll
+
+  - step_number: 5
+    action: Document Network Exposure
+    description: |
+      Determine if Modbus services are accessible from IT network, Internet,
+      or properly isolated on OT network. Document network segmentation.
+    expected_outcome: Network exposure classification for each Modbus service
+    tools:
+      - Network diagrams
+      - Traceroute
+      - VLAN documentation
+
+  - step_number: 6
+    action: Assess Authentication/Encryption
+    description: |
+      Document that standard Modbus TCP has no authentication or encryption.
+      Check if any overlay security (VPN, firewall) is in place.
+    expected_outcome: Documentation of security controls (or lack thereof)
+    tools:
+      - Wireshark (packet capture for protocol analysis)
+      - Network documentation
+
+evidence_objects:
+  - id: modbus_scan_results
+    type: config
+    description: Port scan results showing open Modbus port 502
+    required: true
+
+  - id: modbus_diagnostic_response
+    type: request_response
+    description: Modbus diagnostic request/response pairs
+    required: true
+
+  - id: device_identification
+    type: config
+    description: Device identification data from Modbus Read Device ID
+    required: true
+
+  - id: network_exposure_map
+    type: screenshot
+    description: Network diagram showing Modbus exposure and segmentation
+    required: true
+
+  - id: pcap_protocol_analysis
+    type: log
+    description: Packet capture showing Modbus traffic (if authorized)
+    required: false
+
+  - id: authorization_documentation
+    type: config
+    description: Signed authorization from all required parties
+    required: true
+
+  - id: testing_timestamps
+    type: timestamp
+    description: Timestamps of all testing activities with maintenance window documentation
+    required: true
+
+finding_template:
+  title: Exposed Modbus TCP Service - Unauthenticated ICS Protocol
+  description: |
+    Modbus TCP services (port 502) are accessible from untrusted networks without
+    authentication or encryption. Modbus is an unauthenticated industrial protocol
+    that allows read and write operations to PLCs and other control devices.
+  impact_level: Critical
+  likelihood: Medium
+  remediation: |
+    Implement defense-in-depth for ICS/SCADA networks:
+    1. Isolate Modbus services to dedicated OT network segments (Purdue Model)
+    2. Implement firewall rules blocking port 502 from IT and Internet
+    3. Use industrial firewalls with Modbus inspection capabilities
+    4. Require VPN or jump host for any remote OT access
+    5. Implement unidirectional data diodes for critical safety systems
+    6. Deploy ICS-aware intrusion detection systems (IDS)
+    7. Monitor all Modbus traffic for unauthorized access attempts
+    8. Consider Modbus security overlays or migration to secure protocols
+    9. Implement strict change control and audit logging
+  business_impact: |
+    Exposed Modbus services can allow attackers to read sensor values, modify
+    setpoints, start/stop equipment, and cause physical damage or safety incidents.
+    Potential impacts include production disruption, equipment damage, safety hazards,
+    environmental incidents, and regulatory violations (NERC CIP, IEC 62443).
+
+safety_constraints:
+  - DO NOT send write commands (function codes 0x05, 0x06, 0x0F, 0x10)
+  - DO NOT modify coils, registers, or any device state
+  - DO NOT perform testing during active production without explicit approval
+  - DO NOT test safety-critical systems without safety personnel present
+  - STOP immediately if any unexpected behavior is observed
+  - DO NOT use automated scanners that may send write commands
+  - MAINTAIN constant communication with operations personnel during testing
+  - HAVE emergency stop procedures documented and ready
+  - DO NOT test redundant systems simultaneously
+
+references:
+  - title: ICS-CERT Advisory - Modbus TCP Security
+    url: https://www.cisa.gov/uscert/ics/advisories
+  - title: NIST SP 800-82 - Guide to ICS Security
+    url: https://csrc.nist.gov/publications/detail/sp/800-82/rev-2/final
+  - title: IEC 62443 - Security for Industrial Automation
+    url: https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards
+
+tags:
+  - ics
+  - scada
+  - ot
+  - modbus
+  - industrial
+  - critical-infrastructure

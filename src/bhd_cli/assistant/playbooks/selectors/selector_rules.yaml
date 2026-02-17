@@ -1,0 +1,69 @@
+# Playbook selector rules
+# Deterministic rules for selecting playbooks based on normalized observations
+
+rules:
+  # Web application rules
+  - id: web_idor_detection
+    test_types: [web]
+    conditions:
+      - category: service
+        data_contains:
+          - key: status_code
+            value: 200
+          - key: url_pattern
+            contains: ["/user/", "/profile/", "/account/"]
+    playbook_id: idor_validation
+    priority: 100
+
+  - id: web_broken_authz
+    test_types: [web]
+    conditions:
+      - category: authorization
+        data_contains:
+          - key: status_code
+            value: 200
+          - key: authz_bypass_indicator
+            value: true
+    playbook_id: authz_broken_access
+    priority: 95
+
+  # Network rules
+  - id: network_exposed_admin
+    test_types: [network]
+    conditions:
+      - category: port
+        data_contains:
+          - key: service
+            values: [ssh, rdp, telnet, vnc, "remote desktop"]
+          - key: exposure
+            value: public
+    playbook_id: exposed_admin_interfaces
+    priority: 90
+
+  # ICS/SCADA rules
+  - id: ics_modbus_exposed
+    test_types: [ics, scada, ot]
+    conditions:
+      - category: port
+        data_contains:
+          - key: port
+            value: 502
+          - key: service
+            value: modbus
+    playbook_id: modbus_exposure
+    priority: 85
+
+  - id: ics_opcua_exposed
+    test_types: [ics, scada, ot]
+    conditions:
+      - category: port
+        data_contains:
+          - key: port
+            values: [4840, 4843]
+          - key: service
+            contains: [opc, opcua]
+    playbook_id: opcua_exposure
+    priority: 85
+
+# Default playbook if no specific match
+default_playbook: null  # No default - require explicit match

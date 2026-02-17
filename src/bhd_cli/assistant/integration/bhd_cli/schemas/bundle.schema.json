@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BHDAssistantExportBundle",
+  "type": "object",
+  "required": [
+    "bundle_version",
+    "engagement_id",
+    "generated_at",
+    "findings",
+    "artifacts_manifest"
+  ],
+  "properties": {
+    "bundle_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "engagement_id": { "type": "string" },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "../../schemas/finding_draft.schema.json" }
+    },
+    "artifacts_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "hash", "path"],
+        "properties": {
+          "artifact_id": { "type": "string" },
+          "hash": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    }
+  }
+}

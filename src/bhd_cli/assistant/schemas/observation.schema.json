@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Observation",
+  "type": "object",
+  "required": [
+    "id",
+    "source_artifact",
+    "category",
+    "tags",
+    "confidence",
+    "data"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Deterministic UUID or hash-based ID"
+    },
+    "source_artifact": {
+      "type": "string",
+      "description": "Reference to ingested artifact ID"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "service",
+        "port",
+        "technology",
+        "authentication",
+        "authorization",
+        "exposure",
+        "configuration",
+        "protocol",
+        "other"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "data": {
+      "type": "object",
+      "description": "Structured extracted data (service name, version, port, etc.)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

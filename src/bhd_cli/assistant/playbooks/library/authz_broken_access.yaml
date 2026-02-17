@@ -1,0 +1,157 @@
+id: authz_broken_access
+version: 1.0.0
+name: Broken Access Control Validation
+type: validation
+test_types:
+  - web
+description: |
+  Validation playbook for general broken access control issues including
+  horizontal and vertical privilege escalation, forced browsing, and missing
+  function-level access control.
+
+prerequisites:
+  - Written authorization for testing
+  - At least two test accounts with different privilege levels
+  - Documented list of functions/endpoints for each role
+
+steps:
+  - step_number: 1
+    action: Map Application Functions by Role
+    description: |
+      Document all accessible functions and endpoints for each test account role.
+      Create a matrix of: Function -> Expected Roles -> URL/Endpoint.
+    expected_outcome: Complete function-to-role mapping
+    tools:
+      - Browser DevTools
+      - Burp Suite (Site Map)
+
+  - step_number: 2
+    action: Test Horizontal Access Control
+    description: |
+      Using Account A, attempt to access Account B's resources at the same
+      privilege level. Test user-specific pages, data, and actions.
+    expected_outcome: Evidence of horizontal access control enforcement
+    tools:
+      - Browser DevTools
+      - Burp Suite (Repeater)
+
+  - step_number: 3
+    action: Test Vertical Access Control (Privilege Escalation)
+    description: |
+      Using lower-privileged account, attempt to access admin/elevated functions
+      by directly requesting URLs or modifying role parameters.
+    expected_outcome: Evidence of privilege escalation prevention
+    tools:
+      - Browser DevTools
+      - Burp Suite (Repeater)
+
+  - step_number: 4
+    action: Test Forced Browsing
+    description: |
+      Attempt to access functionality by guessing URLs without navigation links.
+      Test common admin paths: /admin, /manager, /dashboard, etc.
+    expected_outcome: Verification that hidden functionality requires proper authorization
+    tools:
+      - Browser
+      - Burp Suite (Intruder - wordlist)
+
+  - step_number: 5
+    action: Test Parameter Manipulation
+    description: |
+      Test modifying parameters like role=user to role=admin, isAdmin=false to
+      isAdmin=true. Check cookies, hidden form fields, and URL parameters.
+    expected_outcome: Evidence that authorization cannot be bypassed via parameter tampering
+    tools:
+      - Browser DevTools
+      - Burp Suite (Repeater)
+
+  - step_number: 6
+    action: Test API Endpoint Access Control
+    description: |
+      Test API endpoints directly without using UI. Verify authorization is
+      enforced at the API layer, not just the UI layer.
+    expected_outcome: Confirmation that API endpoints have independent authorization checks
+    tools:
+      - Burp Suite (Repeater)
+      - curl/Postman
+
+evidence_objects:
+  - id: role_function_matrix
+    type: config
+    description: Documented matrix of roles and their authorized functions
+    required: true
+
+  - id: horizontal_authz_tests
+    type: request_response
+    description: Cross-user access attempts at same privilege level
+    required: true
+
+  - id: vertical_authz_tests
+    type: request_response
+    description: Privilege escalation attempts (low to high privilege)
+    required: true
+
+  - id: forced_browsing_results
+    type: request_response
+    description: Direct URL access attempts for hidden/privileged functions
+    required: true
+
+  - id: parameter_tampering_tests
+    type: request_response
+    description: Requests with modified authorization parameters
+    required: true
+
+  - id: api_authorization_tests
+    type: request_response
+    description: Direct API calls testing authorization enforcement
+    required: true
+
+  - id: session_analysis
+    type: screenshot
+    description: Session cookies/tokens analysis for role information
+    required: false
+
+finding_template:
+  title: Broken Access Control - Insufficient Authorization Enforcement
+  description: |
+    The application fails to properly enforce access control, allowing users to
+    perform actions or access data beyond their authorized scope. This includes
+    both horizontal (same-level) and vertical (privilege escalation) access control
+    bypasses.
+  impact_level: High
+  likelihood: High
+  remediation: |
+    Implement comprehensive access control framework:
+    1. Enforce authorization checks on every request at the server side
+    2. Use a centralized access control mechanism (don't scatter checks across codebase)
+    3. Deny access by default; explicitly grant permissions
+    4. Implement role-based access control (RBAC) or attribute-based access control (ABAC)
+    5. Log all authorization failures for monitoring
+    6. Never rely on client-side controls or "security through obscurity"
+    7. Test access control logic thoroughly with automated tests
+  business_impact: |
+    Broken access control allows attackers to act as other users, access sensitive
+    data, or perform privileged operations. This can result in data breaches, fraud,
+    unauthorized system changes, compliance violations, and complete system compromise.
+
+safety_constraints:
+  - DO NOT access production user accounts without explicit authorization
+  - DO NOT perform actions that modify production data
+  - DO NOT escalate to administrative accounts in production environments
+  - DO NOT use automated scanners without rate limiting
+  - STOP immediately if you gain unintended access to sensitive functions
+  - DO NOT attempt to access financial, healthcare, or PII without specific authorization
+  - Report any unintended access immediately to the application owner
+
+references:
+  - title: OWASP Top 10 - Broken Access Control
+    url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  - title: OWASP Testing Guide - Authorization Testing
+    url: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/
+
+tags:
+  - web
+  - authorization
+  - access-control
+  - privilege-escalation
+  - owasp-top-10

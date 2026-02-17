@@ -1,0 +1,139 @@
+id: idor_validation
+version: 1.0.0
+name: IDOR (Insecure Direct Object Reference) Validation
+type: validation
+test_types:
+  - web
+description: |
+  Validation playbook for suspected IDOR vulnerabilities in web applications.
+  This playbook guides safe verification and evidence collection without
+  unauthorized access or data manipulation.
+
+prerequisites:
+  - Written authorization to test the target application
+  - Valid test account credentials for comparison
+  - Documented baseline of authorized access patterns
+
+steps:
+  - step_number: 1
+    action: Document Baseline Authorization
+    description: |
+      Record your own user ID/object references that you are authorized to access.
+      Document the URL patterns, parameters, and responses for YOUR authorized objects.
+    expected_outcome: Baseline reference list of authorized object IDs and access patterns
+    tools:
+      - Browser DevTools
+      - Burp Suite (Proxy/Intercept)
+
+  - step_number: 2
+    action: Identify Object Reference Parameters
+    description: |
+      Identify parameters that appear to be object references (user IDs, document IDs, etc.).
+      Document the parameter names, locations (URL, POST body, headers), and current values.
+    expected_outcome: List of suspected object reference parameters
+    tools:
+      - Browser DevTools
+      - Burp Suite (Proxy)
+
+  - step_number: 3
+    action: Test with Invalid/Non-existent Object IDs
+    description: |
+      Test with clearly invalid object IDs (e.g., 99999999, -1, 'invalid').
+      Record the application's response behavior for non-existent objects.
+    expected_outcome: Understanding of how application handles invalid references
+    tools:
+      - Browser DevTools
+      - Burp Suite (Repeater)
+
+  - step_number: 4
+    action: Attempt Access to Known Unauthorized Object (Safe Test)
+    description: |
+      If you have TWO test accounts, attempt to access Account A's objects while
+      authenticated as Account B. Record the response. DO NOT access production
+      user data or real customer information.
+    expected_outcome: Evidence of whether authorization checks are enforced
+    tools:
+      - Browser DevTools
+      - Burp Suite (Repeater)
+
+  - step_number: 5
+    action: Document Response Patterns
+    description: |
+      Compare authorized vs unauthorized access attempts. Document differences in
+      status codes, response bodies, timing, and any error messages.
+    expected_outcome: Clear evidence of authorization enforcement or lack thereof
+    tools:
+      - Burp Suite (Comparer)
+      - Spreadsheet/Notes
+
+evidence_objects:
+  - id: baseline_auth_requests
+    type: request_response
+    description: HTTP requests/responses for authorized object access
+    required: true
+
+  - id: invalid_object_requests
+    type: request_response
+    description: HTTP requests/responses for invalid object IDs
+    required: true
+
+  - id: cross_account_test_requests
+    type: request_response
+    description: HTTP requests/responses for cross-account access attempts (test accounts only)
+    required: true
+
+  - id: response_comparison
+    type: screenshot
+    description: Side-by-side comparison of authorized vs unauthorized responses
+    required: true
+
+  - id: authorization_decision_log
+    type: log
+    description: Application logs showing authorization decisions (if available)
+    required: false
+
+  - id: timestamp_records
+    type: timestamp
+    description: Timestamps of all testing activities for audit trail
+    required: true
+
+finding_template:
+  title: Insecure Direct Object Reference (IDOR) - Broken Authorization
+  description: |
+    The application does not properly enforce authorization checks when accessing
+    objects via direct references. Users can access or manipulate objects belonging
+    to other users by modifying object reference parameters in requests.
+  impact_level: High
+  likelihood: Medium
+  remediation: |
+    Implement server-side authorization checks for every object access:
+    1. Validate that the authenticated user has permission to access the requested object
+    2. Use indirect object references (mapping tables) instead of direct database IDs
+    3. Implement consistent authorization middleware/framework across all endpoints
+    4. Add logging for authorization failures to detect exploitation attempts
+  business_impact: |
+    Unauthorized access to user data can lead to privacy violations, data breaches,
+    regulatory compliance failures (GDPR, CCPA), and loss of customer trust. Attackers
+    can view, modify, or delete other users' sensitive information.
+
+safety_constraints:
+  - DO NOT access production user accounts or real customer data
+  - DO NOT attempt to access administrative or privileged accounts without explicit authorization
+  - DO NOT modify, delete, or corrupt any data during testing
+  - DO NOT use automated tools to enumerate all possible object IDs
+  - DO NOT test during production hours if system stability is a concern
+  - STOP testing immediately if you gain unintended access to sensitive data
+  - Report findings to the application owner before proceeding with additional tests
+
+references:
+  - title: OWASP Top 10 - Broken Access Control
+    url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  - title: OWASP Testing Guide - IDOR
+    url: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References
+
+tags:
+  - web
+  - authorization
+  - idor
+  - access-control
+  - owasp-top-10

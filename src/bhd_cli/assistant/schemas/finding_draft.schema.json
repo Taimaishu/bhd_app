@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FindingDraft",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "affected_asset",
+    "description",
+    "impact",
+    "likelihood",
+    "evidence_refs",
+    "remediation",
+    "business_impact"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "affected_asset": { "type": "string" },
+    "description": { "type": "string" },
+    "impact": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "likelihood": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "very_high"]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risk_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "remediation": { "type": "string" },
+    "business_impact": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "validated", "closed"],
+      "default": "draft"
+    }
+  }
+}

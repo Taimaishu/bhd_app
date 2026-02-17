@@ -1,0 +1,164 @@
+id: exposed_admin_interfaces
+version: 1.0.0
+name: Exposed Administrative Interface Validation
+type: validation
+test_types:
+  - network
+  - home
+description: |
+  Validation playbook for verifying exposure of administrative interfaces
+  (SSH, RDP, VNC, Telnet, etc.) to unauthorized networks. This playbook
+  focuses on safe verification and documentation.
+
+prerequisites:
+  - Written authorization for network scanning
+  - Documented scope of authorized target IP ranges
+  - Understanding of expected network topology
+
+steps:
+  - step_number: 1
+    action: Confirm Target Scope
+    description: |
+      Verify that all target IP addresses are within authorized scope.
+      Document the approved IP ranges and ensure scanning will not
+      impact out-of-scope systems.
+    expected_outcome: Verified list of in-scope IP addresses/ranges
+    tools:
+      - Scope documentation
+
+  - step_number: 2
+    action: Identify Open Administrative Ports
+    description: |
+      Scan for common administrative service ports: SSH (22), Telnet (23),
+      RDP (3389), VNC (5900), etc. Record open ports and basic service banners.
+    expected_outcome: List of open administrative ports per host
+    tools:
+      - nmap (basic scan)
+      - netstat (from authorized host)
+
+  - step_number: 3
+    action: Determine Network Exposure
+    description: |
+      Determine if administrative services are accessible from unauthorized
+      networks. Check if services are Internet-facing, internal-only, or
+      properly segmented.
+    expected_outcome: Network exposure classification for each service
+    tools:
+      - nmap
+      - traceroute
+      - Network diagrams
+
+  - step_number: 4
+    action: Banner Grabbing (Passive)
+    description: |
+      Collect service banners to identify software versions. DO NOT attempt
+      authentication. Record exact banner text and version information.
+    expected_outcome: Service version information for vulnerability assessment
+    tools:
+      - nmap (-sV)
+      - netcat (nc)
+      - telnet (for banner only)
+
+  - step_number: 5
+    action: Check for Default Credentials Documentation
+    description: |
+      Research if identified services/versions have known default credentials.
+      DO NOT attempt to authenticate. Document findings for recommendation purposes.
+    expected_outcome: List of services with potential default credential risks
+    tools:
+      - Vendor documentation
+      - CVE databases
+
+  - step_number: 6
+    action: Document Access Control Measures
+    description: |
+      Identify any visible access controls: firewall rules, VPN requirements,
+      IP whitelisting, fail2ban, etc. Record what controls are apparent.
+    expected_outcome: Documentation of observed security controls
+    tools:
+      - Network documentation
+      - Repeated connection attempts (observational only)
+
+evidence_objects:
+  - id: port_scan_results
+    type: config
+    description: Complete port scan output showing open administrative ports
+    required: true
+
+  - id: service_banners
+    type: banner
+    description: Collected service banners with version information
+    required: true
+
+  - id: network_topology_map
+    type: screenshot
+    description: Network diagram showing exposure paths to administrative services
+    required: true
+
+  - id: exposure_classification
+    type: config
+    description: Classification of each service's network exposure (Internet/Internal/VPN-only)
+    required: true
+
+  - id: default_credential_research
+    type: config
+    description: List of services with known default credentials
+    required: false
+
+  - id: access_control_observations
+    type: log
+    description: Notes on observed access controls and security measures
+    required: true
+
+  - id: scan_timestamps
+    type: timestamp
+    description: Timestamps of all scanning activities
+    required: true
+
+finding_template:
+  title: Exposed Administrative Interface - Inadequate Network Segmentation
+  description: |
+    Administrative services (SSH, RDP, VNC, Telnet, etc.) are accessible from
+    untrusted networks. These services provide privileged access and should be
+    restricted to authorized management networks only.
+  impact_level: High
+  likelihood: High
+  remediation: |
+    Implement network-layer access controls for administrative services:
+    1. Remove administrative services from Internet-facing networks
+    2. Require VPN or jump host access for remote administration
+    3. Implement firewall rules restricting admin services to management VLANs
+    4. Use network segmentation to isolate administrative interfaces
+    5. Enable multi-factor authentication for all remote administrative access
+    6. Implement IP whitelisting for known administrative source IPs
+    7. Monitor and log all administrative service access attempts
+    8. Consider replacing insecure protocols (Telnet) with encrypted alternatives (SSH)
+  business_impact: |
+    Exposed administrative interfaces are primary targets for attackers. Compromise
+    can lead to complete system takeover, data breaches, ransomware deployment,
+    and persistent network access. Brute force and credential stuffing attacks
+    against these services are common and often successful.
+
+safety_constraints:
+  - DO NOT attempt authentication or login to any service
+  - DO NOT perform brute force or password guessing attacks
+  - DO NOT exploit any identified vulnerabilities
+  - DO NOT perform aggressive scans that could cause service disruption
+  - DO NOT scan outside authorized IP ranges
+  - STOP scanning if any system becomes unstable
+  - DO NOT use default credentials even if known
+  - Coordinate scanning activities with system owners to avoid conflicts
+
+references:
+  - title: CIS Controls - Secure Configuration for Network Devices
+    url: https://www.cisecurity.org/controls/secure-configuration-for-network-devices
+  - title: NIST SP 800-123 - Guide to General Server Security
+    url: https://csrc.nist.gov/publications/detail/sp/800-123/final
+
+tags:
+  - network
+  - remote-access
+  - ssh
+  - rdp
+  - segmentation
+  - exposure

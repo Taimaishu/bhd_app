@@ -1,0 +1,177 @@
+id: opcua_exposure
+version: 1.0.0
+name: OPC UA Exposure Validation
+type: validation
+test_types:
+  - ics
+  - scada
+  - ot
+description: |
+  Validation playbook for verifying OPC UA (OPC Unified Architecture) exposure
+  in industrial control systems. OPC UA supports security features but is often
+  misconfigured. This playbook focuses on READ-ONLY verification.
+
+prerequisites:
+  - Written authorization from facility owner/operator
+  - Approval from operations/safety/engineering teams
+  - Understanding of production schedules and maintenance windows
+  - Confirmed non-impact testing methodology
+  - Knowledge of OPC UA security modes in use
+
+steps:
+  - step_number: 1
+    action: Confirm Authorization and Coordination
+    description: |
+      Verify written authorization from all stakeholders. Confirm testing window,
+      emergency procedures, and coordination with operations personnel.
+    expected_outcome: Documented authorization and coordination plan
+    tools:
+      - Authorization documents
+      - Communication plan
+
+  - step_number: 2
+    action: Identify OPC UA Services
+    description: |
+      Scan for OPC UA ports: 4840 (TCP), 4843 (HTTPS). Identify systems
+      responding on these ports. Record IP addresses and basic responses.
+    expected_outcome: List of systems with OPC UA ports open
+    tools:
+      - nmap (-p 4840,4843)
+
+  - step_number: 3
+    action: Enumerate OPC UA Endpoints
+    description: |
+      Use OPC UA discovery to enumerate available endpoints and their security
+      policies. This is a standard OPC UA operation that does not require authentication.
+    expected_outcome: List of available endpoints and security configurations
+    tools:
+      - UAExpert (Discovery only)
+      - Python opcua library (discovery)
+
+  - step_number: 4
+    action: Analyze Security Policies
+    description: |
+      Document the security policies offered by each endpoint:
+      - None (no security)
+      - Sign (message signing only)
+      - Sign & Encrypt (full security)
+      Document authentication modes (Anonymous, Username, Certificate).
+    expected_outcome: Security policy documentation for each endpoint
+    tools:
+      - UAExpert
+      - opcua-client
+
+  - step_number: 5
+    action: Test Anonymous Access (If Allowed)
+    description: |
+      If "Anonymous" authentication is allowed, connect and browse the
+      server's address space (READ-ONLY). Document accessible nodes and data types.
+      DO NOT read or write operational data.
+    expected_outcome: Documentation of anonymous access capabilities
+    tools:
+      - UAExpert (read-only browsing)
+      - Python opcua library
+
+  - step_number: 6
+    action: Document Network Exposure
+    description: |
+      Determine if OPC UA services are accessible from IT network, Internet,
+      or properly isolated on OT network. Document network segmentation and
+      any overlay security (VPN, firewall).
+    expected_outcome: Network exposure classification for each OPC UA service
+    tools:
+      - Network diagrams
+      - Traceroute
+      - Firewall rules documentation
+
+evidence_objects:
+  - id: opcua_scan_results
+    type: config
+    description: Port scan results showing open OPC UA ports
+    required: true
+
+  - id: endpoint_discovery
+    type: config
+    description: OPC UA endpoint enumeration with security policy information
+    required: true
+
+  - id: security_policy_matrix
+    type: config
+    description: Table of endpoints and their security configurations
+    required: true
+
+  - id: anonymous_access_results
+    type: screenshot
+    description: Screenshot of anonymous browsing results (if anonymous access allowed)
+    required: false
+
+  - id: network_exposure_map
+    type: screenshot
+    description: Network diagram showing OPC UA exposure and segmentation
+    required: true
+
+  - id: authorization_documentation
+    type: config
+    description: Signed authorization from all required parties
+    required: true
+
+  - id: testing_timestamps
+    type: timestamp
+    description: Timestamps of all testing activities with maintenance window documentation
+    required: true
+
+finding_template:
+  title: OPC UA Service Exposure - Weak Security Configuration
+  description: |
+    OPC UA services are accessible with weak security configurations such as
+    no encryption, anonymous access, or exposure to untrusted networks. While
+    OPC UA supports strong security, misconfiguration is common.
+  impact_level: High
+  likelihood: Medium
+  remediation: |
+    Implement OPC UA security best practices:
+    1. Enable "Sign & Encrypt" security policy on all OPC UA endpoints
+    2. Disable anonymous access; require certificate-based authentication
+    3. Isolate OPC UA services to dedicated OT network segments
+    4. Implement application-level firewall rules for OPC UA
+    5. Use valid, properly managed X.509 certificates (not self-signed)
+    6. Enable audit logging for all OPC UA access
+    7. Regularly review and rotate certificates
+    8. Implement role-based access control within OPC UA
+    9. Monitor OPC UA traffic for anomalies
+    10. Follow IEC 62443 security levels for ICS environments
+  business_impact: |
+    Weak OPC UA security allows unauthorized access to industrial data and
+    control systems. Attackers can read process values, modify setpoints,
+    cause equipment damage, disrupt production, or trigger safety incidents.
+    Impacts include production downtime, equipment damage, safety hazards,
+    and regulatory non-compliance (IEC 62443, NERC CIP).
+
+safety_constraints:
+  - DO NOT write to any OPC UA nodes or variables
+  - DO NOT call methods or execute commands via OPC UA
+  - DO NOT perform testing during active production without explicit approval
+  - DO NOT test safety-critical systems without safety personnel oversight
+  - STOP immediately if any unexpected behavior or alarms occur
+  - DO NOT use automated tools that may trigger writes
+  - MAINTAIN constant communication with operations during testing
+  - HAVE emergency stop procedures ready and documented
+  - DO NOT attempt to bypass security policies or authentication
+  - DO NOT stress-test servers with excessive connection attempts
+
+references:
+  - title: OPC Foundation Security
+    url: https://opcfoundation.org/about/opc-technologies/opc-ua/opc-ua-security/
+  - title: NIST SP 800-82 - Guide to ICS Security
+    url: https://csrc.nist.gov/publications/detail/sp/800-82/rev-2/final
+  - title: IEC 62443 - Industrial Security Standards
+    url: https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards
+
+tags:
+  - ics
+  - scada
+  - ot
+  - opcua
+  - opc-ua
+  - industrial
+  - critical-infrastructure

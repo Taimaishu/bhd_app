@@ -1530,7 +1530,18 @@ def cmd_report(_args):
 # CLI Parser
 # --------------------------
 def build_parser():
-    parser = argparse.ArgumentParser(prog=CLI_NAME, description="Black Hat Defense CLI (Guardrails + Home Audit)")
+    epilog_text = """
+Assistant features (observation ingestion, playbook suggestions, evidence planning):
+  bhd-assist --help
+  bhd-assist suggest-playbooks --help
+  bhd-assist ingest --help
+"""
+    parser = argparse.ArgumentParser(
+        prog=CLI_NAME,
+        description="Black Hat Defense CLI (Guardrails + Home Audit)",
+        epilog=epilog_text,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Engagements group

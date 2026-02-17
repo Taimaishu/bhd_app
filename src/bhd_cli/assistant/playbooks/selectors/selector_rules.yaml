@@ -28,17 +28,25 @@ rules:
     priority: 95
 
   # Network rules
-  - id: network_exposed_admin
+  - id: network_exposed_admin_service
+    test_types: [network]
+    conditions:
+      - category: service
+        data_contains:
+          - key: service
+            values: [ssh, rdp, telnet, vnc, "remote desktop"]
+    playbook_id: exposed_admin_interfaces
+    priority: 90
+
+  - id: network_exposed_admin_port
     test_types: [network]
     conditions:
       - category: port
         data_contains:
           - key: service
             values: [ssh, rdp, telnet, vnc, "remote desktop"]
-          - key: exposure
-            value: public
     playbook_id: exposed_admin_interfaces
-    priority: 90
+    priority: 89
 
   # ICS/SCADA rules
   - id: ics_modbus_exposed

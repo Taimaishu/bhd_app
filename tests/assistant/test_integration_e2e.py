@@ -18,18 +18,19 @@ def test_e2e_ingest_suggest_network():
         storage_dir = Path(tmpdir)
         storage = JSONStorageAdapter(storage_dir)
 
-        # Simulate ingested observations matching network_exposed_admin rule
+        # Simulate ingested observations from Nmap (SERVICE category with version)
         obs1 = Observation(
             id="obs-1",
             source_artifact="nmap-scan-1",
-            category=ObservationCategory.PORT,
-            tags=["open", "ssh"],
-            confidence=0.95,
+            category=ObservationCategory.SERVICE,
+            tags=["service", "ssh"],
+            confidence=1.0,
             data={
                 "host": "10.0.0.1",
                 "port": 22,
                 "service": "ssh",
-                "exposure": "public",  # This is the key field
+                "product": "OpenSSH",
+                "version": "8.9p1",
                 "state": "open"
             }
         )

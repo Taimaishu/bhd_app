@@ -57,7 +57,8 @@ def test_selector_web_authz(selector):
 
 def test_selector_network_exposed_admin(selector):
     """Test that selector picks exposed admin playbook for open admin services."""
-    observations = [
+    # Test with PORT category
+    observations_port = [
         Observation(
             id="obs-1",
             source_artifact="nmap-scan-1",
@@ -67,13 +68,33 @@ def test_selector_network_exposed_admin(selector):
             data={
                 "port": 22,
                 "service": "ssh",
-                "exposure": "public",
                 "state": "open"
             }
         )
     ]
 
-    result = selector.select_playbook(observations, "network")
+    result = selector.select_playbook(observations_port, "network")
+    assert result == "exposed_admin_interfaces"
+
+    # Test with SERVICE category (version info available)
+    observations_service = [
+        Observation(
+            id="obs-2",
+            source_artifact="nmap-scan-2",
+            category=ObservationCategory.SERVICE,
+            tags=["service", "ssh"],
+            confidence=1.0,
+            data={
+                "port": 22,
+                "service": "ssh",
+                "product": "OpenSSH",
+                "version": "8.9p1",
+                "state": "open"
+            }
+        )
+    ]
+
+    result = selector.select_playbook(observations_service, "network")
     assert result == "exposed_admin_interfaces"
 
 
@@ -190,3 +211,70 @@ def test_selector_priority(selector):
     # IDOR has priority 100, authz has priority 95
     result = selector.select_playbook(observations, "web")
     assert result == "idor_validation"
+
+
+def test_selector_explain_mode_match(selector):
+    """Test explain mode when rule matches."""
+    observations = [
+        Observation(
+            id="obs-1",
+            source_artifact="nmap-scan",
+            category=ObservationCategory.SERVICE,
+            tags=["service", "ssh"],
+            confidence=1.0,
+            data={
+                "port": 22,
+                "service": "ssh",
+                "product": "OpenSSH",
+                "version": "8.9p1"
+            }
+        )
+    ]
+
+    result = selector.select_playbook(observations, "network", explain=True)
+
+    # Should be a dict
+    assert isinstance(result, dict)
+    assert "evaluated_rules" in result
+    assert "selected_playbook" in result
+
+    # Should select exposed_admin_interfaces
+    assert result["selected_playbook"] == "exposed_admin_interfaces"
+
+    # Should have evaluation details
+    evaluated = result["evaluated_rules"]
+    assert isinstance(evaluated, list)
+    assert len(evaluated) > 0
+
+    # Find the matching rule
+    matched_rules = [r for r in evaluated if r.get("matched")]
+    assert len(matched_rules) > 0
+    assert matched_rules[0]["rule_id"] == "network_exposed_admin_service"
+    assert matched_rules[0]["playbook_id"] == "exposed_admin_interfaces"
+
+
+def test_selector_explain_mode_no_match(selector):
+    """Test explain mode when no rule matches."""
+    observations = [
+        Observation(
+            id="obs-1",
+            source_artifact="test",
+            category=ObservationCategory.OTHER,
+            tags=["unknown"],
+            confidence=0.5,
+            data={"test": "data"}
+        )
+    ]
+
+    result = selector.select_playbook(observations, "network", explain=True)
+
+    # Should be a dict
+    assert isinstance(result, dict)
+    assert result["selected_playbook"] is None
+
+    # All rules should have failure_reasons
+    evaluated = result["evaluated_rules"]
+    for rule in evaluated:
+        if not rule.get("matched"):
+            assert "failure_reasons" in rule
+            assert len(rule["failure_reasons"]) > 0

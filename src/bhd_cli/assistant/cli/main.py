@@ -191,15 +191,31 @@ def cmd_suggest_playbooks(args):
     selector = PlaybookSelector(rules_path)
 
     test_type = args.test_type or "network"
-    selected_playbook = selector.select_playbook(observations, test_type)
+    explain = getattr(args, 'explain', False)
 
-    print(json.dumps({
-        "status": "success",
-        "test_type": test_type,
-        "observations_count": len(observations),
-        "selected_playbook": selected_playbook,
-        "message": f"Selected playbook: {selected_playbook}" if selected_playbook else "No matching playbook found"
-    }, indent=2, sort_keys=True))
+    result = selector.select_playbook(observations, test_type, explain=explain)
+
+    if explain:
+        # Result is a dict with evaluated_rules and selected_playbook
+        output = {
+            "status": "success",
+            "test_type": test_type,
+            "observations_count": len(observations),
+            "selected_playbook": result["selected_playbook"],
+            "evaluated_rules": result["evaluated_rules"],
+            "message": f"Selected playbook: {result['selected_playbook']}" if result['selected_playbook'] else "No matching playbook found"
+        }
+    else:
+        # Result is just the playbook_id
+        output = {
+            "status": "success",
+            "test_type": test_type,
+            "observations_count": len(observations),
+            "selected_playbook": result,
+            "message": f"Selected playbook: {result}" if result else "No matching playbook found"
+        }
+
+    print(json.dumps(output, indent=2, sort_keys=True))
 
 
 def cmd_export(args):
@@ -259,6 +275,7 @@ def main():
     p_suggest = subparsers.add_parser("suggest-playbooks", help="Suggest playbooks based on observations")
     p_suggest.add_argument("--test-type", help="Test type (web, network, ics, etc.)", default="network")
     p_suggest.add_argument("--workspace", help="Workspace directory", default=".")
+    p_suggest.add_argument("--explain", action="store_true", help="Show detailed rule evaluation for debugging")
     p_suggest.set_defaults(func=cmd_suggest_playbooks)
 
     # export command

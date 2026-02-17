@@ -278,3 +278,37 @@ def test_ics_test_type(tmp_path):
     # Verify JSON structure
     loaded_data = json.loads((eng1_dir / "engagement.json").read_text())
     assert loaded_data["meta"]["test_type"] == "ics", "Test type should be 'ics'"
+
+
+def test_osint_test_type(tmp_path):
+    """Test that OSINT test type can be created and stored correctly."""
+    # Create test engagement structure with OSINT type
+    eng_dir = tmp_path / "engagements"
+    eng1_dir = eng_dir / "test-osint-20260217-000000"
+    eng1_dir.mkdir(parents=True)
+
+    # Create engagement with osint test type
+    engagement_data = {
+        "meta": {"client": "osint-client", "project": "attack-surface-analysis", "test_type": "osint"},
+        "scope": {"in_scope": ["example.com", "*.example.com"]},
+        "work": {"findings": [], "notes": []},
+    }
+    (eng1_dir / "engagement.json").write_text(json.dumps(engagement_data, indent=2))
+
+    # Set current engagement
+    (eng_dir / ".current").write_text("test-osint-20260217-000000")
+
+    # Run show command to verify engagement was created correctly
+    result = subprocess.run(
+        [sys.executable, "-m", "bhd_cli.cli", "show"],
+        capture_output=True,
+        text=True,
+        cwd=str(tmp_path),
+    )
+
+    assert result.returncode == 0, f"show command failed: {result.stderr}"
+    assert "Type: osint" in result.stdout, "OSINT test type should be displayed"
+
+    # Verify JSON structure
+    loaded_data = json.loads((eng1_dir / "engagement.json").read_text())
+    assert loaded_data["meta"]["test_type"] == "osint", "Test type should be 'osint'"

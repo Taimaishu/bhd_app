@@ -5,6 +5,12 @@ All notable changes to bhd-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- ICS/SCADA/OT test type support to align with Black Hat Defense LLC industrial security service offerings
+- Test coverage for ICS test type creation and validation
+
 ## [1.1.0] - 2026-02-15
 
 ### Added

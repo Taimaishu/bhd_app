@@ -1,4 +1,5 @@
 """Smoke tests for bhd-cli command."""
+import importlib.util
 import json
 import subprocess
 import sys
@@ -193,11 +194,8 @@ def test_export_json_all_empty(tmp_path):
 
 def test_export_pdf_relative_path(tmp_path):
     """Test that export pdf prints relative paths (if reportlab available)."""
-    # Check if reportlab is available
-    try:
-        import reportlab
-    except ImportError:
-        # Skip this test if reportlab not installed
+    # Check if reportlab is available without importing it (avoids deprecated load_module)
+    if importlib.util.find_spec("reportlab") is None:
         import pytest
         pytest.skip("reportlab not installed, skipping PDF path test")
 

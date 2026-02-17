@@ -246,3 +246,37 @@ This is a test report.
     pdf_file = eng1_dir / "report.pdf"
     assert pdf_file.exists(), "report.pdf should exist"
     assert pdf_file.stat().st_size > 0, "report.pdf should not be empty"
+
+
+def test_ics_test_type(tmp_path):
+    """Test that ICS test type can be created and stored correctly."""
+    # Create test engagement structure with ICS type
+    eng_dir = tmp_path / "engagements"
+    eng1_dir = eng_dir / "test-ics-20260217-000000"
+    eng1_dir.mkdir(parents=True)
+
+    # Create engagement with ics test type
+    engagement_data = {
+        "meta": {"client": "ics-client", "project": "scada-audit", "test_type": "ics"},
+        "scope": {"in_scope": ["10.1.1.0/24"]},
+        "work": {"findings": [], "notes": []},
+    }
+    (eng1_dir / "engagement.json").write_text(json.dumps(engagement_data, indent=2))
+
+    # Set current engagement
+    (eng_dir / ".current").write_text("test-ics-20260217-000000")
+
+    # Run show command to verify engagement was created correctly
+    result = subprocess.run(
+        [sys.executable, "-m", "bhd_cli.cli", "show"],
+        capture_output=True,
+        text=True,
+        cwd=str(tmp_path),
+    )
+
+    assert result.returncode == 0, f"show command failed: {result.stderr}"
+    assert "Type: ics" in result.stdout, "ICS test type should be displayed"
+
+    # Verify JSON structure
+    loaded_data = json.loads((eng1_dir / "engagement.json").read_text())
+    assert loaded_data["meta"]["test_type"] == "ics", "Test type should be 'ics'"

@@ -435,7 +435,8 @@ def cmd_init(_args):
     print("=== Black Hat Defense CLI — New Engagement Wizard ===")
     client = safe_input("Client name: ").strip()
     project = safe_input("Project name: ").strip()
-    test_type = safe_input("Test type (web/network/home/other): ").strip() or "other"
+    # ICS/SCADA/OT support added to align with Black Hat Defense LLC service offerings
+    test_type = safe_input("Test type (web/network/home/ics/scada/ot/other): ").strip() or "other"
 
     scope_in = safe_input("In-scope targets (comma-separated IPs/domains/CIDRs): ").strip()
     out_scope = safe_input("Out-of-scope notes (optional): ").strip()

@@ -137,19 +137,22 @@
 
 ```bash
 # Initialize workspace
-python -m bhd_cli.assistant init [--workspace DIR]
+bhd-assist init [--workspace DIR]
 
 # List playbooks
-python -m bhd_cli.assistant playbook-list [--test-type TYPE]
+bhd-assist playbook-list [--test-type TYPE]
 
 # Render playbook
-python -m bhd_cli.assistant playbook-render PLAYBOOK_ID [--format checklist|evidence|finding]
+bhd-assist playbook-render PLAYBOOK_ID [--format checklist|evidence|finding]
 
-# Ingest tool output (stub)
-python -m bhd_cli.assistant ingest --tool TOOL --file FILE
+# Ingest tool output
+bhd-assist ingest --tool TOOL --file FILE [--workspace DIR]
+
+# Suggest playbooks based on observations
+bhd-assist suggest-playbooks --test-type TYPE [--workspace DIR] [--explain]
 
 # Export findings (stub)
-python -m bhd_cli.assistant export [--output FILE]
+bhd-assist export [--output FILE]
 ```
 
 **All commands:**
@@ -272,13 +275,13 @@ FindingDraft → bhd-cli finding:
 
 ### CLI Commands Work
 ```bash
-$ python -m bhd_cli.assistant init
+$ bhd-assist init
 {"assistance_level": "VALIDATION_ONLY", "config_file": "...", "status": "initialized", ...}
 
-$ python -m bhd_cli.assistant playbook-list
+$ bhd-assist playbook-list
 {"count": 5, "playbooks": [...]}
 
-$ python -m bhd_cli.assistant playbook-render idor_validation
+$ bhd-assist playbook-render idor_validation
 # IDOR (Insecure Direct Object Reference) Validation
 ...
 ```

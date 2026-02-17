@@ -22,6 +22,7 @@ classifiers = [
 
 [project.scripts]
 bhd-cli = "bhd_cli.cli:main"
+bhd-assist = "bhd_cli.assistant.cli.main:main"
 
 [project.optional-dependencies]
 dev = [

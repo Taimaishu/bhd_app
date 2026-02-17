@@ -180,8 +180,8 @@ python scripts/check_playbook_safety.py
 ### Step 5: Test Rendering
 
 ```bash
-python -m bhd_cli.assistant playbook-render my_new_playbook
-python -m bhd_cli.assistant playbook-render my_new_playbook --format evidence
+bhd-assist playbook-render my_new_playbook
+bhd-assist playbook-render my_new_playbook --format evidence
 ```
 
 ### Step 6: Add Selector Rules (Optional)

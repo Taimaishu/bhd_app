@@ -79,7 +79,7 @@ bhd-assist follows **hexagonal/ports-and-adapters architecture**:
 ```
 src/bhd_cli/assistant/
 ├── __init__.py
-├── __main__.py              # Entry point: python -m bhd_cli.assistant
+├── __main__.py              # Legacy entry point: python -m bhd_cli.assistant (use bhd-assist CLI instead)
 ├── README.md                # This file
 ├── SECURITY.md              # Security statement
 ├── POLICY.md                # Assistance levels policy
@@ -136,7 +136,7 @@ pip install -e .
 ### Initialize Workspace
 
 ```bash
-python -m bhd_cli.assistant init
+bhd-assist init
 ```
 
 This creates `.bhd-assist/config.json` with default Level 0 (VALIDATION_ONLY).
@@ -144,33 +144,39 @@ This creates `.bhd-assist/config.json` with default Level 0 (VALIDATION_ONLY).
 ### List Available Playbooks
 
 ```bash
-python -m bhd_cli.assistant playbook-list
-python -m bhd_cli.assistant playbook-list --test-type web
+bhd-assist playbook-list
+bhd-assist playbook-list --test-type web
 ```
 
 ### Render a Playbook
 
 ```bash
 # Render as human-readable checklist
-python -m bhd_cli.assistant playbook-render idor_validation
+bhd-assist playbook-render idor_validation
 
 # Render as evidence plan JSON
-python -m bhd_cli.assistant playbook-render idor_validation --format evidence
+bhd-assist playbook-render idor_validation --format evidence
 
 # Render as finding draft skeleton
-python -m bhd_cli.assistant playbook-render idor_validation --format finding --asset "webapp.example.com"
+bhd-assist playbook-render idor_validation --format finding --asset "webapp.example.com"
 ```
 
-### Ingest Tool Output (Stub)
+### Ingest Tool Output
 
 ```bash
-python -m bhd_cli.assistant ingest --tool nmap --file scan_results.txt
+bhd-assist ingest --tool nmap --file scan_results.xml --workspace .
+```
+
+### Suggest Playbooks
+
+```bash
+bhd-assist suggest-playbooks --test-type network --workspace . --explain
 ```
 
 ### Export to bhd-cli (Stub)
 
 ```bash
-python -m bhd_cli.assistant export --output findings_export.json
+bhd-assist export --output findings_export.json
 ```
 
 ---
@@ -294,6 +300,13 @@ cd ~/BlackHatDefenseLLC/bhd_app
 pytest tests/assistant/ -v
 ```
 
+### Testing CLI Entry Point
+
+```bash
+bhd-assist --help
+bhd-assist playbook-list
+```
+
 ### Schema Validation
 
 ```bash
@@ -326,7 +339,7 @@ Quick summary:
 3. Include safety_constraints (minimum 3)
 4. Add selector rules if needed
 5. Validate: `python scripts/validate_schemas.py`
-6. Test: `python -m bhd_cli.assistant playbook-render <playbook_id>`
+6. Test: `bhd-assist playbook-render <playbook_id>`
 
 ---
 

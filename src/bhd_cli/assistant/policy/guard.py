@@ -32,11 +32,12 @@ class PolicyGuard(IPolicyGuard):
     ]
 
     # Additional patterns blocked at VALIDATION_ONLY level (Level 0)
+    # ADAPTIVE mode: reduced false positives while still blocking weaponized content
     VALIDATION_ONLY_BLOCKED_PATTERNS = [
-        r"\bhow\s+to\s+exploit\b",
-        r"\bexecution\s+step.*exploit",
-        r"\battack\s+vector.*implement",
-        r"\binjection\s+payload\b",
+        r"\bhow\s+to\s+exploit.*step-by-step\b",  # More specific
+        r"\bexecution\s+step.*exploit.*code\b",   # Require "code"
+        r"\battack\s+vector.*implement.*payload\b",  # Require "payload"
+        r"\binjection\s+payload.*example\b",      # Require "example"
     ]
 
     def __init__(

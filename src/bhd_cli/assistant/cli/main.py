@@ -218,6 +218,100 @@ def cmd_suggest_playbooks(args):
     print(json.dumps(output, indent=2, sort_keys=True))
 
 
+def cmd_hypothesis_draft(args):
+    """Draft hypotheses from observations using LLM."""
+    from ..adapters.llm.router import LLMRouter
+    from ..adapters.storage.json_store import JSONStorageAdapter
+    from ..core.adaptive_mode import AssistContext, Environment, TargetOwner, EffectiveAssistLevel
+    from ..core.hypothesis_drafter import HypothesisDrafter
+
+    # Get workspace directory
+    workspace_dir = Path(args.workspace or ".")
+    storage_dir = workspace_dir / ".bhd-assist" / "storage"
+
+    if not storage_dir.exists():
+        print(json.dumps({
+            "status": "error",
+            "message": "No observations found. Run 'bhd-assist ingest' first."
+        }, indent=2, sort_keys=True))
+        return
+
+    # Load observations
+    storage = JSONStorageAdapter(storage_dir)
+    observations = storage.load_observations(session_id="default")
+
+    if not observations:
+        print(json.dumps({
+            "status": "no_observations",
+            "message": "No observations found in storage. Ingest tool output first.",
+            "observations_count": 0
+        }, indent=2, sort_keys=True))
+        return
+
+    # Build context from args
+    try:
+        env = Environment(args.environment)
+    except ValueError:
+        print(json.dumps({
+            "status": "error",
+            "message": f"Invalid environment: {args.environment}. Use: prod_client, lab, or ctf"
+        }, indent=2, sort_keys=True))
+        return
+
+    try:
+        owner = TargetOwner(args.target_owner)
+    except ValueError:
+        print(json.dumps({
+            "status": "error",
+            "message": f"Invalid target_owner: {args.target_owner}. Use: self, client, or unknown"
+        }, indent=2, sort_keys=True))
+        return
+
+    try:
+        requested_level = EffectiveAssistLevel(args.assist_level)
+    except ValueError:
+        print(json.dumps({
+            "status": "error",
+            "message": f"Invalid assist_level: {args.assist_level}. Use: standard or deep_lab"
+        }, indent=2, sort_keys=True))
+        return
+
+    context = AssistContext(
+        environment=env,
+        authorization=args.authorized,
+        target_owner=owner,
+        requested_level=requested_level
+    )
+
+    # Initialize LLM router and policy guard
+    provider_order = args.provider_order.split(",") if args.provider_order else None
+    llm_router = LLMRouter(provider_order=provider_order)
+
+    # Create minimal policy guard for hypothesis drafting
+    policy_guard = PolicyGuard()
+
+    # Initialize drafter
+    drafter = HypothesisDrafter(
+        llm_provider=llm_router,
+        policy_guard=policy_guard
+    )
+
+    # Draft hypotheses
+    try:
+        result = drafter.draft_hypotheses(
+            observations=observations,
+            context=context,
+            max_hypotheses=args.max
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+    except Exception as e:
+        print(json.dumps({
+            "status": "error",
+            "message": str(e)
+        }, indent=2, sort_keys=True))
+        sys.exit(1)
+
+
 def cmd_export(args):
     """Export finding drafts (stub)."""
     print(json.dumps({
@@ -277,6 +371,21 @@ def main():
     p_suggest.add_argument("--workspace", help="Workspace directory", default=".")
     p_suggest.add_argument("--explain", action="store_true", help="Show detailed rule evaluation for debugging")
     p_suggest.set_defaults(func=cmd_suggest_playbooks)
+
+    # hypothesis-draft command
+    p_hyp = subparsers.add_parser("hypothesis-draft", help="Draft hypotheses from observations using LLM")
+    p_hyp.add_argument("--workspace", help="Workspace directory", default=".")
+    p_hyp.add_argument("--environment", choices=["prod_client", "lab", "ctf"], default="prod_client",
+                       help="Environment context")
+    p_hyp.add_argument("--authorized", action="store_true",
+                       help="Assert written authorization (required for deep_lab)")
+    p_hyp.add_argument("--target-owner", choices=["self", "client", "unknown"], default="client",
+                       help="Target ownership")
+    p_hyp.add_argument("--assist-level", choices=["standard", "deep_lab"], default="standard",
+                       help="Requested assistance level")
+    p_hyp.add_argument("--provider-order", help="Comma-separated provider order (e.g., 'ollama,openai')")
+    p_hyp.add_argument("--max", type=int, default=3, help="Maximum hypotheses to generate")
+    p_hyp.set_defaults(func=cmd_hypothesis_draft)
 
     # export command
     p_export = subparsers.add_parser("export", help="Export finding drafts")

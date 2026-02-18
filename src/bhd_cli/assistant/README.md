@@ -173,6 +173,21 @@ bhd-assist ingest --tool nmap --file scan_results.xml --workspace .
 bhd-assist suggest-playbooks --test-type network --workspace . --explain
 ```
 
+### Draft Hypotheses (LLM-Powered)
+
+```bash
+# Standard mode (production-safe)
+bhd-assist hypothesis-draft --workspace . --environment prod_client --target-owner client
+
+# Deep lab mode (requires lab environment + self-owned targets + authorization)
+bhd-assist hypothesis-draft --workspace . \
+  --environment lab \
+  --authorized \
+  --target-owner self \
+  --assist-level deep_lab \
+  --max 5
+```
+
 ### Export to bhd-cli (Stub)
 
 ```bash
@@ -237,35 +252,108 @@ Finding draft format maps to bhd-cli fields:
 
 ---
 
-## Assistance Levels
+## Assistance Levels - ADAPTIVE Mode
 
-### Level 0: VALIDATION_ONLY (Default)
+### Context-Aware Assistance
 
-✅ Safe verification playbooks
-✅ Evidence collection guidance
-✅ Finding draft generation
-❌ NO exploitation guidance
-❌ NO weaponized automation
+The assistant uses **ADAPTIVE mode** to adjust assistance based on environment context:
 
-**Default for all production use.**
+#### Standard Mode (Default)
+- ✅ Validation checklists and evidence collection
+- ✅ Safe, non-destructive testing guidance
+- ✅ Risk framing and threat modeling
+- ❌ NO exploitation guidance or weaponized instructions
+- **Always safe for production client environments**
 
-### Level 1: LAB_TRAINING
+#### Deep Lab Mode (Restricted)
+- ✅ Broader testing methodologies for lab environments
+- ✅ More detailed validation techniques
+- ✅ CTF and training scenarios
+- ❌ Still NO exploit code, payloads, or weaponized automation
+- **Only available when ALL conditions met:**
+  - Environment is `lab` or `ctf`
+  - User asserts written authorization (`--authorized`)
+  - Target is self-owned (`--target-owner self`)
 
-Requires explicit opt-in via `profile.json`:
+#### Context Evaluation
 
-```json
+The system evaluates context and automatically clamps to safe levels:
+
+```bash
+# Requesting deep_lab in prod environment → clamped to standard
+bhd-assist hypothesis-draft --environment prod_client --assist-level deep_lab
+# Result: effective_assist_level="standard", reason="clamped: environment=prod_client"
+
+# Requesting deep_lab without authorization → clamped to standard
+bhd-assist hypothesis-draft --environment lab --assist-level deep_lab
+# Result: effective_assist_level="standard", reason="clamped: authorization=false"
+
+# All conditions met → deep_lab granted
+bhd-assist hypothesis-draft \
+  --environment lab \
+  --authorized \
+  --target-owner self \
+  --assist-level deep_lab
+# Result: effective_assist_level="deep_lab"
+```
+
+### Legacy Level 0/1 System
+
+The original Level 0 (VALIDATION_ONLY) and Level 1 (LAB_TRAINING) system still exists for backward compatibility. See [POLICY.md](./POLICY.md) for details.
+
+---
+
+## LLM Provider Configuration
+
+### Supported Providers
+
+The assistant supports multiple LLM providers with automatic fallback:
+
+1. **Ollama (Local, CPU)**
+   - Default: `llama3.2:1b` for fast CPU inference
+   - Requires Ollama running: `http://localhost:11434`
+   - No API key needed
+   - Privacy-friendly (all processing local)
+
+2. **OpenAI (Cloud)**
+   - Requires: `OPENAI_API_KEY` environment variable
+   - Default model: `gpt-4o-mini`
+   - Install: `pip install openai`
+
+3. **Anthropic (Cloud)**
+   - Requires: `ANTHROPIC_API_KEY` environment variable
+   - Default model: `claude-3-5-haiku-20241022`
+   - Install: `pip install anthropic`
+
+### Provider Routing
+
+The system tries providers in order (default: `ollama → openai → anthropic`) and falls back automatically:
+
+```bash
+# Use custom provider order
+bhd-assist hypothesis-draft \
+  --workspace . \
+  --provider-order "openai,anthropic,ollama"
+
+# Output shows which provider was used
 {
-  "assistance_level": 1,
-  "environment": "lab",
-  "purpose": "training"
+  "provider_used": "openai",
+  ...
 }
 ```
 
-✅ Broader educational guidance
-❌ Still NO exploit code generation
-❌ Still NO weaponized tools
+### Setup Examples
 
-See [POLICY.md](./POLICY.md) for complete policy specification.
+```bash
+# Local Ollama (recommended for privacy)
+ollama run llama3.2:1b
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
 
 ---
 

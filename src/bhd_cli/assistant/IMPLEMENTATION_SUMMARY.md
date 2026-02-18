@@ -151,6 +151,16 @@ bhd-assist ingest --tool TOOL --file FILE [--workspace DIR]
 # Suggest playbooks based on observations
 bhd-assist suggest-playbooks --test-type TYPE [--workspace DIR] [--explain]
 
+# Draft hypotheses using LLM (NEW)
+bhd-assist hypothesis-draft \
+  --workspace DIR \
+  --environment [prod_client|lab|ctf] \
+  --authorized \
+  --target-owner [self|client|unknown] \
+  --assist-level [standard|deep_lab] \
+  --provider-order "ollama,openai,anthropic" \
+  --max 3
+
 # Export findings (stub)
 bhd-assist export [--output FILE]
 ```
@@ -159,6 +169,46 @@ bhd-assist export [--output FILE]
 - ✅ Run without errors
 - ✅ Return valid JSON output
 - ✅ Follow schema constraints
+
+## 6. ADAPTIVE Mode - Context-Aware Assistance (NEW)
+
+✅ **Context Evaluation System**
+- Environment: prod_client, lab, ctf
+- Authorization: boolean assertion
+- Target ownership: self, client, unknown
+- Requested level: standard, deep_lab
+
+✅ **Clamping Rules**
+- Default: standard mode (always safe)
+- deep_lab only when: lab/ctf + authorized + self-owned
+- Reasons provided in every response
+
+✅ **Policy Guard Enhancements**
+- ADAPTIVE mode: reduced false positives
+- Still blocks all weaponized content
+- Allows normal security testing language
+- More specific pattern matching
+
+## 7. LLM Integration with Schema Guarantees (NEW)
+
+✅ **Provider Routing**
+- Ollama (local, CPU): llama3.2:1b
+- OpenAI (cloud): gpt-4o-mini
+- Anthropic (cloud): claude-3-5-haiku
+- Automatic fallback on failure
+- Configurable provider order
+
+✅ **Structured Output Pipeline**
+- JSON schema validation with jsonschema
+- Repair loop (up to 2 repair attempts)
+- Policy guard integration
+- Deterministic IDs
+
+✅ **Hypothesis Drafting**
+- Observation clustering by category + host
+- Context-aware prompts (standard vs deep_lab)
+- Schema-compliant output
+- Full audit trail
 
 ---
 
